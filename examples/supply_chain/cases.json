@@ -1,0 +1,65 @@
+[
+  {
+    "id": "account-material-issue",
+    "input": {
+      "text": "For account acct-aurora-07, warehouse WH-CLE reports 80 units of RM-AL-6061 lot LOT-77 still physically present, but inventory availability is zero and manufacturing work order WO-4822 will not start. Investigate, reproduce, check older incidents and recent code changes.",
+      "account_id": "acct-aurora-07"
+    },
+    "expected_trajectory": {
+      "capability": "bug_analysis",
+      "account_id": "acct-aurora-07",
+      "required_domains": ["inventory", "warehouse", "manufacturing"],
+      "required_repositories": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "required_tools": ["admin_lookup", "splunk_search", "jira_search", "github_recent_commits", "reproduce_backend", "codebot"],
+      "completed_tools": ["admin_lookup", "splunk_search", "jira_search", "github_recent_commits", "reproduce_backend"],
+      "tool_repositories": {
+        "github_recent_commits": ["northstar/inventory-ledger"],
+        "reproduce_backend": ["northstar/inventory-ledger"],
+        "codebot": ["northstar/inventory-ledger"]
+      },
+      "parallel_tools": [["admin_lookup", "splunk_search", "jira_search", "github_recent_commits"]],
+      "dependencies": [
+        {"before": "admin_lookup", "after": "reproduce_backend"},
+        {"before": "splunk_search", "after": "reproduce_backend"},
+        {"before": "reproduce_backend", "after": "codebot"},
+        {"before": "github_recent_commits", "after": "codebot"}
+      ],
+      "forbidden_tools": ["jira_create", "github_compare"]
+    },
+    "expected_outcome": {
+      "event_id": "evt-mi-7842",
+      "initial_quantity": 160,
+      "issue_quantity": 80,
+      "warehouse_physical_remaining": 80,
+      "incorrect_inventory_available": 0,
+      "correct_inventory_available": 80,
+      "blocked_work_order": "WO-4822",
+      "suspect_commit": "7f3a0c1",
+      "prior_issue": "SCM-1842"
+    }
+  },
+  {
+    "id": "release-material-issue",
+    "input": {
+      "text": "Compare v3.8.0 with v3.7.0 across inventory-ledger, warehouse-execution, and manufacturing-execution. Identify likely release impact on the material issue flow, owners, consumers, and regression tests."
+    },
+    "expected_trajectory": {
+      "capability": "release_impact",
+      "required_domains": ["inventory", "warehouse", "manufacturing"],
+      "required_repositories": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "required_tools": ["github_compare", "codebot"],
+      "completed_tools": ["github_compare"],
+      "tool_repositories": {"github_compare": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"]},
+      "parallel_tools": [["github_compare", "github_compare", "github_compare"]],
+      "dependencies": [{"before": "github_compare", "after": "codebot"}],
+      "forbidden_tools": ["admin_lookup", "splunk_search", "jira_create"]
+    },
+    "expected_outcome": {
+      "affected_feature": "material issue and production consumption",
+      "changed_repositories": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "required_owner": "Inventory Platform",
+      "required_consumer": "MES work-order start",
+      "required_test": "tests/test_material_issue_idempotency.py"
+    }
+  }
+]

@@ -10,4 +10,6 @@ The local tests establish graph scheduling, routing validation, status reporting
 6. **RRSI experiment.** Connect `examples/langgraph_bridge.py` to the graph, a real proposer, and a semantic critic. Run paired incumbent/candidate trials with the same seeds. Require cited evidence for team-artifact or feature-map edits; keep PRDs/designs protected. Inspect candidate diffs, screening decisions, score and cost gates, and the final held-out comparison.
 7. **Shadow run.** Replay real requests without applying code changes or creating Jira tickets. Compare the assistant's route and proposed deliverable with the human outcome. Promote only after the held-out task scores and domain regression limits are satisfactory.
 
+The [supply-chain example](../examples/supply_chain/README.md) adds a stronger local check: an executable backend replay, recorded account/log/Jira/Git evidence, a three-repository release diff, trajectory assertions, and independent outcome checks. Run `.venv/bin/python -m examples.supply_chain.run` before connecting live services. Its recorded fixtures are still not a team benchmark.
+
 The deterministic `examples/demo.json` experiment is a wiring check only. Its 0→1 held-out score does not measure the real agent.

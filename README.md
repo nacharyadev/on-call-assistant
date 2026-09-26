@@ -22,6 +22,8 @@ src/on_call_assistant/
 
 The versioned harness under `examples/agent_harness` is an empty template for real team mappings. `examples/demo_harness` and `examples/demo.json` are synthetic fixtures for the evolution loop. `examples/live.json` runs the real graph with model calls and dry-run tools as an integration smoke test.
 
+For a richer local exercise, [the supply-chain example](examples/supply_chain/README.md) runs an inventory, warehouse, and manufacturing incident through the graph with a real backend replay, recorded operational evidence, a three-repository release comparison, and strict trajectory plus outcome checks.
+
 ## Verify locally
 
 ```sh

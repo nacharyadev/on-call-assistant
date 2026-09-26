@@ -1,0 +1,44 @@
+{
+  "features": [
+    {
+      "name": "material issue and production consumption",
+      "domain": "manufacturing",
+      "repositories": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "ground_truth": ["prds/warehouse-material-issue.md", "prds/work-order-start.md", "decisions/adr-014-material-issue-idempotency.md"],
+      "path_globs": {
+        "northstar/inventory-ledger": ["src/inventory/material_issue*.py"],
+        "northstar/warehouse-execution": ["src/warehouse/material_issue*.py"],
+        "northstar/manufacturing-execution": ["src/manufacturing/work_order_start*.py"]
+      },
+      "owners": ["Inventory Platform", "Warehouse Execution", "Manufacturing Systems"],
+      "consumers": ["Available-to-promise API", "Warehouse pick confirmation", "MES work-order start"],
+      "tests": ["tests/test_material_issue_idempotency.py", "tests/test_pick_confirmation.py", "tests/test_work_order_start.py"]
+    },
+    {
+      "name": "available to promise",
+      "domain": "inventory",
+      "repositories": ["northstar/inventory-ledger", "northstar/inventory-api"],
+      "ground_truth": ["prds/inventory-availability.md"],
+      "path_globs": {
+        "northstar/inventory-ledger": ["src/inventory/availability*.py"],
+        "northstar/inventory-api": ["src/api/availability*.py"]
+      },
+      "owners": ["Inventory Platform"],
+      "consumers": ["Sales allocation", "MES work-order start"],
+      "tests": ["tests/test_available_to_promise.py"]
+    },
+    {
+      "name": "lot traceability",
+      "domain": "warehouse",
+      "repositories": ["northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "ground_truth": ["prds/warehouse-material-issue.md", "prds/work-order-start.md"],
+      "path_globs": {
+        "northstar/warehouse-execution": ["src/warehouse/lot_trace*.py"],
+        "northstar/manufacturing-execution": ["src/manufacturing/lot_trace*.py"]
+      },
+      "owners": ["Warehouse Execution", "Manufacturing Systems"],
+      "consumers": ["Recall reporting", "Quality hold checks"],
+      "tests": ["tests/test_lot_traceability.py"]
+    }
+  ]
+}

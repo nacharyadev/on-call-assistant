@@ -1,0 +1,57 @@
+{
+  "admin_lookup": {
+    "account_id": "acct-aurora-07",
+    "sku": "RM-AL-6061",
+    "lot": "LOT-77",
+    "warehouse": "WH-CLE",
+    "plant": "PL-CLE",
+    "warehouse_physical_remaining": 80,
+    "inventory_available": 0,
+    "blocked_work_order": "WO-4822",
+    "blocked_work_order_required": 80,
+    "snapshot_at": "2026-09-21T08:43:00Z"
+  },
+  "splunk_search": {
+    "account_id": "acct-aurora-07",
+    "event_id": "evt-mi-7842",
+    "deliveries": [
+      {"delivery_id": "delivery-1", "at": "2026-09-21T08:42:10Z", "request_id": null, "inventory_before": 160, "inventory_after": 80},
+      {"delivery_id": "delivery-2", "at": "2026-09-21T08:42:12Z", "request_id": null, "inventory_before": 80, "inventory_after": 0}
+    ],
+    "exception": {"type": "INSUFFICIENT_MATERIAL", "work_order": "WO-4822", "at": "2026-09-21T08:42:15Z"}
+  },
+  "jira_search": {
+    "issues": [
+      {"key": "SCM-1842", "summary": "Duplicate material issue after scanner retry when request_id is absent", "status": "Resolved", "resolved_at": "2026-08-11", "url": "https://jira.example/browse/SCM-1842"}
+    ]
+  },
+  "github_recent_commits": {
+    "northstar/inventory-ledger": [
+      {"sha": "7f3a0c1", "message": "Use request_id as material issue dedupe key", "date": "2026-09-19T17:04:00Z", "url": "https://github.example/northstar/inventory-ledger/commit/7f3a0c1"},
+      {"sha": "3bc9d20", "message": "Add lot-scoped inventory read model", "date": "2026-09-16T12:20:00Z", "url": "https://github.example/northstar/inventory-ledger/commit/3bc9d20"}
+    ]
+  },
+  "github_compare": {
+    "northstar/inventory-ledger": {
+      "comparison_url": "https://github.example/northstar/inventory-ledger/compare/v3.7.0...v3.8.0",
+      "files": [
+        {"filename": "src/inventory/material_issue_consumer.py", "status": "modified", "url": "https://github.example/northstar/inventory-ledger/blob/v3.8.0/src/inventory/material_issue_consumer.py", "patch": "- dedupe_key = event.event_id\n+ dedupe_key = event.request_id"}
+      ],
+      "commits": [{"sha": "7f3a0c1", "message": "Use request_id as material issue dedupe key"}]
+    },
+    "northstar/warehouse-execution": {
+      "comparison_url": "https://github.example/northstar/warehouse-execution/compare/v3.7.0...v3.8.0",
+      "files": [
+        {"filename": "src/warehouse/material_issue_outbox.py", "status": "modified", "url": "https://github.example/northstar/warehouse-execution/blob/v3.8.0/src/warehouse/material_issue_outbox.py", "patch": "+ retry_unacknowledged_delivery(event_id)"}
+      ],
+      "commits": [{"sha": "0b10c92", "message": "Retry unacknowledged outbox delivery"}]
+    },
+    "northstar/manufacturing-execution": {
+      "comparison_url": "https://github.example/northstar/manufacturing-execution/compare/v3.7.0...v3.8.0",
+      "files": [
+        {"filename": "src/manufacturing/work_order_start.py", "status": "modified", "url": "https://github.example/northstar/manufacturing-execution/blob/v3.8.0/src/manufacturing/work_order_start.py", "patch": "+ assert available_quantity >= required_quantity"}
+      ],
+      "commits": [{"sha": "8a92ef0", "message": "Require availability check before work-order start"}]
+    }
+  }
+}

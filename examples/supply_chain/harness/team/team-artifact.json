@@ -1,0 +1,37 @@
+{
+  "name": "Northstar supply-chain platform",
+  "snapshot": "2026-09-20",
+  "domains": [
+    {
+      "id": "inventory",
+      "definition": "Stock ledger, available-to-promise quantities, reservations, and material-consumption events. A logical event must change the ledger once.",
+      "repositories": ["northstar/inventory-ledger", "northstar/inventory-api"],
+      "owners": ["Inventory Platform"],
+      "prd_paths": ["prds/inventory-availability.md"],
+      "decision_paths": ["decisions/adr-014-material-issue-idempotency.md"]
+    },
+    {
+      "id": "warehouse",
+      "definition": "Lot-scoped picks, warehouse issue confirmation, and the event outbox that delivers material-issued events.",
+      "repositories": ["northstar/warehouse-execution", "northstar/warehouse-ui"],
+      "owners": ["Warehouse Execution"],
+      "prd_paths": ["prds/warehouse-material-issue.md"],
+      "decision_paths": ["decisions/adr-014-material-issue-idempotency.md"]
+    },
+    {
+      "id": "manufacturing",
+      "definition": "Work-order start checks and consumption of lot-controlled raw materials at plants.",
+      "repositories": ["northstar/manufacturing-execution"],
+      "owners": ["Manufacturing Systems"],
+      "prd_paths": ["prds/work-order-start.md"],
+      "decision_paths": ["decisions/adr-014-material-issue-idempotency.md"]
+    }
+  ],
+  "tools": {
+    "admin": "Account-scoped stock and work-order snapshots",
+    "splunk": "Delivery IDs, event IDs, ledger transitions, and MES exceptions",
+    "jira": "Prior incidents and planned work",
+    "git": "Recent commits and release diffs",
+    "reproducer": "Isolated backend replay of the material-issued event"
+  }
+}
