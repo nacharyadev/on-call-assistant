@@ -11,7 +11,7 @@ from langgraph.types import Send
 
 from ..knowledge.loader import _document, _load_json
 from .impact import impact_candidates
-from ..integrations.model import ModelPort, OpenAIModel
+from ..integrations.model import ModelPort, create_model
 from .planning import CAPABILITIES, DEFAULT_PROMPTS, _validate_plan
 from .response import validate_response
 from .safety import _redact
@@ -30,7 +30,7 @@ def create_graph(
     root = Path(harness_dir).resolve()
     artifact = _load_json(root, "team/team-artifact.json")
     features = _load_json(root, "feature-map.json")
-    model = model or OpenAIModel()
+    model = model or create_model()
     tools = tools or HTTPTools()
 
     def prompt(name: str) -> str:

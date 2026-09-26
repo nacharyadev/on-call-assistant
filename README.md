@@ -24,6 +24,8 @@ The versioned harness under `examples/agent_harness` is an empty template for re
 
 For a richer local exercise, [the supply-chain example](examples/supply_chain/README.md) runs an inventory, warehouse, and manufacturing incident through the graph with a real backend replay, recorded operational evidence, a three-repository release comparison, and strict trajectory plus outcome checks.
 
+For Anthropic, replace `ANTHROPIC_API_KEY` in the ignored `.env` file (or copy `.env.example` to `.env` first). The LangChain model adapter reads it when you run from the repository root. Change `OCA_MODEL_PROVIDER` and `OCA_MODEL` to switch models. See [agent setup](docs/agent.md) for service configuration.
+
 ## Verify locally
 
 ```sh

@@ -22,10 +22,9 @@ From the repository root:
 
 The default run uses a deterministic fixture model and recorded tools. It exercises the actual LangGraph, parallel workers, task dependencies, checkpoints, context loading, and response path. It checks both the trajectory and an independent outcome verifier. The verifier checks the replayed stock values, duplicate event deliveries, MES response, source evidence, release path matches, and the reported Codebot stub. Tests also remove a log delivery or a changed file and confirm that the outcome check fails even when the trajectory still passes.
 
-To test the same requests with the configured model while retaining recorded tools:
+To test the same requests with Anthropic while retaining recorded tools, put your key in the ignored `.env` file at the repository root (copy `.env.example` if needed):
 
 ```sh
-export OPENAI_API_KEY=...
 .venv/bin/python -m examples.supply_chain.run --live-model
 ```
 

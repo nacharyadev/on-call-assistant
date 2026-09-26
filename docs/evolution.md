@@ -21,11 +21,11 @@ Run RRSI as a separate experiment process. It loads a snapshot of the on-call ap
 cd ~/dev/on-call-assistant
 python3 -m venv .venv
 .venv/bin/python -m pip install -e .
-export OPENAI_API_KEY='your-key'
+# Replace the ANTHROPIC_API_KEY placeholder in .env first.
 .venv/bin/on-call-evolve examples/live.json
 ```
 
-If your account uses a different supported model, set `OCA_MODEL` before the final command. The live config uses the real LangGraph classifier, planner, and response synthesizer with model calls. Its worker tools return dry-run results, so it does not contact Jira, Splunk, Git, or Codebot. One model-backed proposal may replace `prompts/planner.txt`; a model-backed critic and independent trajectory verifier screen and score it. The two evolve cases and two held-out paraphrases are a quick integration smoke test, not evidence of software engineering task success. A candidate may be rejected or leave the held-out score unchanged.
+Copy `.env.example` to `.env` if it is missing. `OCA_MODEL_PROVIDER` chooses Anthropic or OpenAI, and `OCA_MODEL` chooses a model for that provider. The live config uses the real LangGraph classifier, planner, and response synthesizer with model calls. Its worker tools return dry-run results, so it does not contact Jira, Splunk, Git, or Codebot. One model-backed proposal may replace `prompts/planner.txt`; a model-backed critic and independent trajectory verifier screen and score it. The two evolve cases and two held-out paraphrases are a quick integration smoke test, not evidence of software engineering task success. A candidate may be rejected or leave the held-out score unchanged.
 
 The command prints the run directory and the held-out before/after score. Inspect `summary.json`, `candidates.jsonl`, `trials.jsonl`, and the candidate harness under that run directory. Model usage is metered in `policy_tokens` for the agent trials; the demo does not include proposer and critic tokens in that metric. Since the live config invokes `../.venv/bin/python` from `examples/`, keep the virtual environment at the project root or update those command arrays.
 

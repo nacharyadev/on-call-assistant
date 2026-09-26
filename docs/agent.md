@@ -37,13 +37,14 @@ The example harness is intentionally empty. Add your team's repository and featu
 ```sh
 python3 -m venv .venv
 .venv/bin/pip install -e '.[serve]'
-export OPENAI_API_KEY=...
+cp .env.example .env
+# Edit .env and replace ANTHROPIC_API_KEY with your key.
 export OCA_API_TOKEN=...
 export OCA_HARNESS_DIR=/absolute/path/to/team/harness
 .venv/bin/uvicorn on_call_assistant.api.service:create_app --factory --host 127.0.0.1 --port 8000
 ```
 
-`OCA_MODEL` chooses the model (`gpt-4.1-mini` by default); `OPENAI_BASE_URL` can point to a compatible endpoint. The HTTP service requires `Authorization: Bearer $OCA_API_TOKEN`. `POST /requests` returns a request ID with HTTP 202. `GET /requests/{id}` returns the current lifecycle status, task list, progress counts, trace, and final answer when available. The CLI is `.venv/bin/on-call-assistant --harness /path/to/harness 'Investigate checkout failures'`.
+The model adapter loads `.env` from the current directory or repository root without overriding existing environment variables. It uses LangChain's `init_chat_model`, so change `OCA_MODEL_PROVIDER` and `OCA_MODEL` together to switch providers or models; install the corresponding LangChain provider package if it is not included here. The example selects Anthropic with `OCA_MODEL_PROVIDER=anthropic`, `ANTHROPIC_API_KEY`, and `OCA_MODEL=claude-sonnet-5`. For OpenAI, set `OCA_MODEL_PROVIDER=openai`, an OpenAI model ID, and `OPENAI_API_KEY`; `OPENAI_BASE_URL` can point to a compatible endpoint. Model calls time out after 120 seconds by default for these two providers; `OCA_MODEL_TIMEOUT_SECONDS` changes that limit. The HTTP service requires `Authorization: Bearer $OCA_API_TOKEN`. `POST /requests` returns a request ID with HTTP 202. `GET /requests/{id}` returns the current lifecycle status, task list, progress counts, trace, and final answer when available. The CLI is `.venv/bin/on-call-assistant --harness /path/to/harness 'Investigate checkout failures'`.
 
 Example:
 

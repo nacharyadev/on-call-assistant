@@ -7,13 +7,13 @@ import sys
 from pathlib import Path
 from typing import Any
 
-from ..integrations.model import OpenAIModel
+from ..integrations.model import ModelPort, create_model
 
 
 PLANNER_PATH = "prompts/planner.txt"
 
 
-def propose(payload: dict[str, Any], model: OpenAIModel) -> dict[str, Any]:
+def propose(payload: dict[str, Any], model: ModelPort) -> dict[str, Any]:
     current = (Path(payload["incumbent_harness_dir"]) / PLANNER_PATH).read_text(encoding="utf-8")
     result, _ = model.complete_json(
         "You improve a reusable on-call agent planner prompt. Return JSON with "
@@ -45,7 +45,7 @@ def propose(payload: dict[str, Any], model: OpenAIModel) -> dict[str, Any]:
     }]}]}
 
 
-def critique(payload: dict[str, Any], model: OpenAIModel) -> dict[str, Any]:
+def critique(payload: dict[str, Any], model: ModelPort) -> dict[str, Any]:
     edits = payload["edits"]
     if len(edits) != 1 or edits[0].get("path") != PLANNER_PATH or edits[0].get("component") != "prompt":
         return {"approved": False, "reason": "live demo only allows one planner prompt edit"}
@@ -68,7 +68,7 @@ def main() -> None:
     if len(sys.argv) != 2 or sys.argv[1] not in {"propose", "critic"}:
         raise SystemExit("usage: python -m on_call_assistant.evolution.model_adapters propose|critic")
     payload = json.load(sys.stdin)
-    model = OpenAIModel()
+    model = create_model()
     result = propose(payload, model) if sys.argv[1] == "propose" else critique(payload, model)
     print(json.dumps(result))
 

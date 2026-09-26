@@ -11,7 +11,10 @@ dependencies = [
   "langgraph>=0.3,<2",
   "fastapi>=0.115,<1",
   "httpx>=0.27,<1",
-  "openai>=1,<3",
+  "langchain>=1,<2",
+  "langchain-openai>=1,<2",
+  "langchain-anthropic>=1,<2",
+  "python-dotenv>=1,<2",
 ]
 
 [project.optional-dependencies]
