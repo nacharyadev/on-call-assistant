@@ -4,7 +4,7 @@ A LangGraph on-call assistant and a separate harness evolution loop for software
 
 This project is inspired by Peng Xia et al., [*RRSI: Regularized Recursive Self-Improvement of Agent Harnesses*](https://arxiv.org/abs/2609.24972), arXiv:2609.24972 (2026). The paper motivates the edit budget, proposal history, leakage screening, cost-aware selection, and held-out evaluation used here.
 
-Open the [local architecture view](architecture.html), then use [agent setup](docs/agent.md) or the [evolution guide](docs/evolution.md) for the relevant workflow.
+Open the [local architecture view](architecture.html), then use [agent setup](docs/agent.md), the [production end-to-end test guide](docs/production-e2e.md), or the [evolution guide](docs/evolution.md) for the relevant workflow.
 See [validation](docs/validation.md) for the path from local tests to a real team benchmark, and [migration](docs/migration.md) for the renamed imports and paths.
 
 ## Codebase
