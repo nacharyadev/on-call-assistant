@@ -1,0 +1,3 @@
+interface:
+  display_name: "OCA Feature Map"
+  short_description: "Map features to repos, paths, and tests"

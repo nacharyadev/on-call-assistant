@@ -1,0 +1,3 @@
+interface:
+  display_name: "OCA Team Map"
+  short_description: "Map domains, repositories, and ownership"

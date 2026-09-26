@@ -1,0 +1,3 @@
+interface:
+  display_name: "OCA Harness Prompts"
+  short_description: "Tune classifier, planner, and response prompts"

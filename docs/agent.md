@@ -28,6 +28,8 @@ Each request has a task list in LangGraph state. The dispatcher marks ready task
 
 ## Configure the team harness
 
+The project includes authoring skills under `.agents/skills/` for the team/repository map, feature map, context documents, prompts, and trajectory evals. Invoke the relevant skill when preparing or updating that harness component. The skills use the schemas and examples described here and in `examples/supply_chain/harness`.
+
 Start with `examples/agent_harness`. Fill `team/team-artifact.json` with domain IDs, definitions, repository metadata, and paths to relevant PRDs and technical decisions. One domain can own many frontend and backend repos. Give each repo a `name`, `kind` (`frontend`, `backend`, `shared`, or `infrastructure`), `responsibility`, routing `signals`, and `depends_on` repo names. Optional `entrypoints`, `verification` test targets, and `reproduction_profile` tell delegated workers where to begin; the gateway owns the actual startup and isolation rules. String entries remain valid for older harnesses. A dependency describes a runtime or contract relationship; it does not automatically schedule a worker. The harness is validated when the graph starts: duplicate domains/features, malformed repositories, unknown repo dependencies, unknown feature repositories, and components outside a feature's repositories fail before a request runs.
 
 ```json

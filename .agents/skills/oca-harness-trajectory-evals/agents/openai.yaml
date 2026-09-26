@@ -1,0 +1,3 @@
+interface:
+  display_name: "OCA Trajectory Evals"
+  short_description: "Author routing and workflow eval cases"
