@@ -12,6 +12,21 @@ class ModelPort(Protocol):
     def complete_json(self, system: str, payload: dict[str, Any]) -> tuple[dict[str, Any], int]: ...
 
 
+CLASSIFIER_SCHEMA = {
+    "title": "OCAClassification",
+    "type": "object",
+    "properties": {
+        "capability": {"type": "string", "enum": [
+            "bug_analysis", "bug_fix", "feature", "pr_review", "release_impact", "tech_debt", "general",
+        ]},
+        "reason": {"type": "string"},
+        "account_id": {"type": "string"},
+    },
+    "required": ["capability", "reason"],
+    "additionalProperties": False,
+}
+
+
 class LangChainModel:
     """Keep graph nodes independent of the selected LangChain provider."""
 
@@ -37,6 +52,9 @@ class LangChainModel:
             options.update(timeout=float(os.getenv("OCA_MODEL_TIMEOUT_SECONDS", "120")), max_retries=0)
         if self.provider == "anthropic":
             options["max_tokens"] = int(os.getenv("OCA_MAX_OUTPUT_TOKENS", "8192"))
+            workspace_id = os.getenv("ANTHROPIC_WORKSPACE_ID", "")
+            if workspace_id and not workspace_id.startswith("replace-with-"):
+                options["default_headers"] = {"anthropic-workspace-id": workspace_id}
         if self.provider == "openai" and os.getenv("OPENAI_BASE_URL"):
             options["base_url"] = os.environ["OPENAI_BASE_URL"]
         self.client = init_chat_model(self.model, model_provider=self.provider, **options)
@@ -44,17 +62,36 @@ class LangChainModel:
             self.client = self.client.bind(response_format={"type": "json_object"})
 
     def complete_json(self, system: str, payload: dict[str, Any]) -> tuple[dict[str, Any], int]:
-        response = self.client.invoke([
+        messages = [
             ("system", system + "\nReturn only a valid JSON object, with no Markdown fences or preamble."),
             ("human", json.dumps(payload, ensure_ascii=False)),
-        ])
-        if response.response_metadata.get("stop_reason") == "max_tokens":
-            raise ValueError("model response was truncated; increase OCA_MAX_OUTPUT_TOKENS")
-        parsed = json.loads(response.text)
-        if not isinstance(parsed, dict):
-            raise ValueError("model response must be a JSON object")
-        usage = response.usage_metadata or {}
-        return parsed, int(usage.get("total_tokens", 0))
+        ]
+        if self.provider == "anthropic" and set(payload) == {"request"} and hasattr(self.client, "with_structured_output"):
+            output = self.client.with_structured_output(
+                CLASSIFIER_SCHEMA, method="json_schema", include_raw=True,
+            ).invoke(messages)
+            if output["parsing_error"] is not None or not isinstance(output["parsed"], dict):
+                raise ValueError("classifier returned invalid structured output")
+            usage = output["raw"].usage_metadata or {}
+            return output["parsed"], int(usage.get("total_tokens", 0))
+        tokens_used = 0
+        for attempt in range(2):
+            response = self.client.invoke(messages)
+            usage = response.usage_metadata or {}
+            tokens_used += int(usage.get("total_tokens", 0))
+            if response.response_metadata.get("stop_reason") == "max_tokens":
+                raise ValueError("model response was truncated; increase OCA_MAX_OUTPUT_TOKENS")
+            try:
+                parsed = json.loads(response.text)
+            except json.JSONDecodeError as exc:
+                if attempt == 1:
+                    raise ValueError("model returned invalid JSON after 2 attempts") from exc
+                messages.append(("human", "The previous response was not parseable JSON. Return one complete JSON object only."))
+                continue
+            if not isinstance(parsed, dict):
+                raise ValueError("model response must be a JSON object")
+            return parsed, tokens_used
+        raise AssertionError("unreachable model retry state")
 
 
 class OpenAIModel(LangChainModel):

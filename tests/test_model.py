@@ -22,6 +22,19 @@ class FakeChatModel:
         )
 
 
+class FakeStructuredChatModel(FakeChatModel):
+    def with_structured_output(self, schema, **kwargs):
+        self.schema = schema
+        self.structured_kwargs = kwargs
+        return self
+
+    def invoke(self, messages):
+        self.messages = messages
+        return {"parsed": {"capability": "bug_analysis", "reason": "incident"},
+                "parsing_error": None,
+                "raw": SimpleNamespace(usage_metadata={"total_tokens": 23})}
+
+
 class ModelTests(unittest.TestCase):
     def test_anthropic_messages_adapter_returns_json_and_usage(self):
         client = FakeChatModel()
@@ -40,6 +53,34 @@ class ModelTests(unittest.TestCase):
                 model = AnthropicModel(client=client)
                 with self.assertRaisesRegex(ValueError, error):
                     model.complete_json("Classify", {})
+
+    def test_non_json_response_gets_one_bounded_retry(self):
+        class FlakyChatModel(FakeChatModel):
+            def __init__(self):
+                super().__init__()
+                self.calls = 0
+
+            def invoke(self, messages):
+                self.calls += 1
+                self.content = "not json" if self.calls == 1 else '{"tasks":[]}'
+                return super().invoke(messages)
+
+        client = FlakyChatModel()
+        model = AnthropicModel(client=client)
+        result, tokens = model.complete_json("Plan", {"team_artifact": {}})
+        self.assertEqual(result, {"tasks": []})
+        self.assertEqual(tokens, 34)
+        self.assertEqual(client.calls, 2)
+
+    def test_classifier_uses_anthropic_structured_output(self):
+        client = FakeStructuredChatModel()
+        model = AnthropicModel(client=client)
+        result, tokens = model.complete_json("Classify", {"request": {"text": "Investigate"}})
+        self.assertEqual(result["capability"], "bug_analysis")
+        self.assertEqual(tokens, 23)
+        self.assertEqual(client.schema["title"], "OCAClassification")
+        self.assertEqual(client.structured_kwargs,
+                         {"method": "json_schema", "include_raw": True})
 
     def test_placeholder_key_is_rejected_without_api_call(self):
         with patch.dict(os.environ, {"ANTHROPIC_API_KEY": "replace-with-your-anthropic-key"}):
@@ -60,7 +101,7 @@ class ModelTests(unittest.TestCase):
     def test_factory_can_instantiate_both_installed_providers_without_network(self):
         cases = (
             ({"OCA_MODEL_PROVIDER": "anthropic", "OCA_MODEL": "claude-sonnet-5",
-              "ANTHROPIC_API_KEY": "test-only-key"}, "ChatAnthropic"),
+              "ANTHROPIC_API_KEY": "test-only-key", "ANTHROPIC_WORKSPACE_ID": "wrkspc_test"}, "ChatAnthropic"),
             ({"OCA_MODEL_PROVIDER": "openai", "OCA_MODEL": "gpt-4.1-mini",
               "OPENAI_API_KEY": "test-only-key"}, "ChatOpenAI"),
         )
@@ -72,6 +113,8 @@ class ModelTests(unittest.TestCase):
                     self.assertEqual(model.client.kwargs["response_format"], {"type": "json_object"})
                 else:
                     self.assertEqual(type(model.client).__name__, expected_client)
+                    self.assertEqual(model.client.default_headers,
+                                     {"anthropic-workspace-id": "wrkspc_test"})
 
 
 if __name__ == "__main__":

@@ -4,12 +4,17 @@ import unittest
 from examples.supply_chain.fixtures import RecordedTools, ROOT
 from examples.supply_chain.mini_services import replay_material_issue
 from examples.supply_chain.run import run_case
+from examples.supply_chain.verifier import _states_tentative_impact
 
 
 CASES = {case["id"]: case for case in json.loads((ROOT / "cases.json").read_text(encoding="utf-8"))}
 
 
 class SupplyChainExampleTests(unittest.TestCase):
+    def test_release_impact_requires_tentative_language(self):
+        self.assertTrue(_states_tentative_impact("This is a plausible risk, not a confirmed regression."))
+        self.assertFalse(_states_tentative_impact("This is a proven regression."))
+
     def test_backend_replay_shows_ledger_and_mes_failure(self):
         replay = replay_material_issue()
         self.assertTrue(replay["bug_reproduced"])

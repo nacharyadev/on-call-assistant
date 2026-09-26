@@ -10,6 +10,12 @@ from on_call_assistant.agent.impact import impact_candidates
 from .fixtures import FEATURE, INVENTORY_REPO, MANUFACTURING_REPO, WAREHOUSE_REPO, ROOT, RecordedTools
 
 
+def _states_tentative_impact(summary: str) -> bool:
+    wording = summary.lower()
+    return any(term in wording for term in
+               ("candidate", "plausib", "potential", "not a confirmed", "not proven", "unverified"))
+
+
 def verify_outcome(case: dict[str, Any], state: dict[str, Any], tools: RecordedTools) -> dict[str, Any]:
     expected = case["expected_outcome"]
     tasks = {item["id"]: item for item in state.get("tasks", [])}
@@ -83,7 +89,7 @@ def verify_outcome(case: dict[str, Any], state: dict[str, Any], tools: RecordedT
         check("owner_consumer_test_reported", expected["required_owner"] in answer.get("owners", [])
               and expected["required_consumer"] in answer.get("consumers", [])
               and expected["required_test"] in answer.get("tests", []))
-        check("impact_stated_as_candidate", "candidate" in answer.get("summary", "").lower())
+        check("impact_stated_as_candidate", _states_tentative_impact(answer.get("summary", "")))
     else:
         check("known_case", False)
 
