@@ -1,0 +1,8 @@
+[
+  {"id":"holdout-bug-analysis","capability":"bug_analysis","domain":"checkout","input":{"request":"Investigate a cache miss regression using logs and a reproducer.","choices":["state a likely cause","replay the trace and isolate the call"]},"expected":"replay the trace and isolate the call"},
+  {"id":"holdout-bug-fix","capability":"bug_fix","domain":"platform","input":{"request":"Repair an exception in an empty batch path.","choices":["make an unverified edit","patch the null path and run the regression test"]},"expected":"patch the null path and run the regression test"},
+  {"id":"holdout-feature","capability":"feature","domain":"checkout","input":{"request":"Add a new event attribute without breaking existing consumers.","choices":["modify one function","update the contract, handler, and tests"]},"expected":"update the contract, handler, and tests"},
+  {"id":"holdout-pr-review","capability":"pr_review","domain":"platform","input":{"request":"Review a circuit breaker PR.","choices":["describe formatting","check failure behavior and cite the affected lines"]},"expected":"check failure behavior and cite the affected lines"},
+  {"id":"holdout-release-impact","capability":"release_impact","domain":"platform","input":{"request":"Assess the blast radius of changed RPC fields.","choices":["list commits","map changed interfaces to callers and tests"]},"expected":"map changed interfaces to callers and tests"},
+  {"id":"holdout-tech-debt","capability":"tech_debt","domain":"checkout","input":{"request":"Clean up a retired experiment flag.","choices":["delete one constant","remove branches, config, tests, and references"]},"expected":"remove branches, config, tests, and references"}
+]

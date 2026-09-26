@@ -1,0 +1,8 @@
+[
+  {"id":"evolve-bug-analysis","capability":"bug_analysis","domain":"checkout","input":{"request":"Reproduce a checkout timeout from a trace and identify the failing call.","choices":["guess from the report","replay the trace and isolate the call"]},"expected":"replay the trace and isolate the call"},
+  {"id":"evolve-bug-fix","capability":"bug_fix","domain":"platform","input":{"request":"Fix a null response path and demonstrate the regression test.","choices":["change code without a test","patch the null path and run the regression test"]},"expected":"patch the null path and run the regression test"},
+  {"id":"evolve-feature","capability":"feature","domain":"checkout","input":{"request":"Add a requested API field with compatibility checks.","choices":["edit only the handler","update the contract, handler, and tests"]},"expected":"update the contract, handler, and tests"},
+  {"id":"evolve-pr-review","capability":"pr_review","domain":"platform","input":{"request":"Review a retry change for correctness.","choices":["comment on style only","check failure behavior and cite the affected lines"]},"expected":"check failure behavior and cite the affected lines"},
+  {"id":"evolve-release-impact","capability":"release_impact","domain":"platform","input":{"request":"Compare a release to the previous version.","choices":["summarize commit titles","map changed interfaces to callers and tests"]},"expected":"map changed interfaces to callers and tests"},
+  {"id":"evolve-tech-debt","capability":"tech_debt","domain":"checkout","input":{"request":"Remove an expired feature flag.","choices":["delete the flag declaration only","remove branches, config, tests, and references"]},"expected":"remove branches, config, tests, and references"}
+]

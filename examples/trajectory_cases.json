@@ -1,0 +1,223 @@
+[
+  {
+    "id": "bug-analysis-backend",
+    "input": {
+      "text": "Investigate and reproduce intermittent checkout API 500s. Check prior Jira incidents and recent commits."
+    },
+    "expected_trajectory": {
+      "capability": "bug_analysis",
+      "required_domains": [
+        "checkout"
+      ],
+      "required_repositories": [
+        "example/checkout-api",
+        "example/checkout-web"
+      ],
+      "required_tools": [
+        "jira_search",
+        "github_recent_commits",
+        "reproduce_backend"
+      ],
+      "tool_repositories": {
+        "github_recent_commits": [
+          "example/checkout-api"
+        ]
+      },
+      "forbidden_tools": [
+        "jira_create"
+      ]
+    },
+    "capability": "bug_analysis",
+    "domain": "checkout"
+  },
+  {
+    "id": "bug-fix",
+    "input": {
+      "text": "Fix the checkout API null response bug. Reproduce it, use Codebot for the patch, and verify the regression."
+    },
+    "expected_trajectory": {
+      "capability": "bug_fix",
+      "required_domains": [
+        "checkout"
+      ],
+      "required_tools": [
+        "reproduce_backend",
+        "codebot"
+      ],
+      "tool_repositories": {
+        "codebot": [
+          "example/checkout-api"
+        ]
+      },
+      "dependencies": [
+        {
+          "before": "reproduce_backend",
+          "after": "codebot"
+        }
+      ]
+    },
+    "capability": "bug_fix",
+    "domain": "checkout"
+  },
+  {
+    "id": "feature-cross-repo",
+    "input": {
+      "text": "Implement the new checkout submission field across the API and web app, using the PRD and existing Jira context."
+    },
+    "expected_trajectory": {
+      "capability": "feature",
+      "required_domains": [
+        "checkout"
+      ],
+      "required_repositories": [
+        "example/checkout-api",
+        "example/checkout-web"
+      ],
+      "required_tools": [
+        "jira_search",
+        "codebot"
+      ],
+      "tool_repositories": {
+        "codebot": [
+          "example/checkout-api",
+          "example/checkout-web"
+        ]
+      },
+      "forbidden_tools": [
+        "admin_lookup",
+        "splunk_search"
+      ]
+    },
+    "capability": "feature",
+    "domain": "checkout"
+  },
+  {
+    "id": "pr-review",
+    "input": {
+      "text": "Review PR 42 in example/platform-core for correctness, failure behavior, and affected callers."
+    },
+    "expected_trajectory": {
+      "capability": "pr_review",
+      "required_domains": [
+        "platform"
+      ],
+      "required_tools": [
+        "github_pr_files",
+        "codebot"
+      ],
+      "tool_repositories": {
+        "github_pr_files": [
+          "example/platform-core"
+        ]
+      },
+      "dependencies": [
+        {
+          "before": "github_pr_files",
+          "after": "codebot"
+        }
+      ],
+      "forbidden_tools": [
+        "jira_create"
+      ]
+    },
+    "capability": "pr_review",
+    "domain": "platform"
+  },
+  {
+    "id": "release-impact",
+    "input": {
+      "text": "Compare release v2.4.0 to v2.3.0 in platform-core and deployments. Identify affected owners, callers, and tests."
+    },
+    "expected_trajectory": {
+      "capability": "release_impact",
+      "required_domains": [
+        "platform"
+      ],
+      "required_repositories": [
+        "example/platform-core",
+        "example/deployments"
+      ],
+      "required_tools": [
+        "github_compare"
+      ],
+      "tool_repositories": {
+        "github_compare": [
+          "example/platform-core",
+          "example/deployments"
+        ]
+      },
+      "parallel_tools": [
+        [
+          "github_compare",
+          "github_compare"
+        ]
+      ],
+      "forbidden_tools": [
+        "jira_create"
+      ]
+    },
+    "capability": "release_impact",
+    "domain": "platform"
+  },
+  {
+    "id": "tech-debt",
+    "input": {
+      "text": "Remove the expired checkout submission feature flag, dead branches, configuration, and tests across the owning repositories."
+    },
+    "expected_trajectory": {
+      "capability": "tech_debt",
+      "required_domains": [
+        "checkout"
+      ],
+      "required_repositories": [
+        "example/checkout-api",
+        "example/checkout-web"
+      ],
+      "required_tools": [
+        "codebot"
+      ],
+      "tool_repositories": {
+        "codebot": [
+          "example/checkout-api",
+          "example/checkout-web"
+        ]
+      },
+      "forbidden_tools": [
+        "admin_lookup",
+        "splunk_search"
+      ]
+    },
+    "capability": "tech_debt",
+    "domain": "checkout"
+  },
+  {
+    "id": "account-incident",
+    "input": {
+      "text": "Investigate checkout exceptions for account acct-123 and check whether this repeats an older Jira issue.",
+      "account_id": "acct-123"
+    },
+    "expected_trajectory": {
+      "capability": "bug_analysis",
+      "account_id": "acct-123",
+      "required_domains": [
+        "checkout"
+      ],
+      "required_tools": [
+        "admin_lookup",
+        "splunk_search",
+        "jira_search"
+      ],
+      "parallel_tools": [
+        [
+          "admin_lookup",
+          "splunk_search"
+        ]
+      ],
+      "forbidden_tools": [
+        "jira_create"
+      ]
+    },
+    "capability": "bug_analysis",
+    "domain": "checkout"
+  }
+]

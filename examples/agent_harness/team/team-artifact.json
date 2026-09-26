@@ -1,0 +1,9 @@
+{
+  "domains": [],
+  "tools": {
+    "jira": "Historical issues and new tickets",
+    "splunk": "Logs and exception details",
+    "admin": "Account-scoped operational data",
+    "git": "Commit history, PR files, and release comparison"
+  }
+}

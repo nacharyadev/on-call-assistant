@@ -1,0 +1,19 @@
+{
+  "baseline_harness": "demo_harness",
+  "evolve_tasks": "evolve.json",
+  "heldout_tasks": "heldout.json",
+  "output_dir": "../runs",
+  "proposer_command": ["python3", "demo_adapter.py", "propose"],
+  "runner_command": ["python3", "demo_adapter.py", "run"],
+  "verifier_command": ["python3", "demo_adapter.py", "verify"],
+  "critic_command": ["python3", "demo_adapter.py", "critic"],
+  "protected_paths": ["decisions", "prds"],
+  "evidence_required_paths": ["team", "feature-map.json"],
+  "rounds": 6,
+  "trials_per_task": 1,
+  "calibration_repeats": 3,
+  "max_candidates": 3,
+  "budget_min": 1,
+  "budget_max": 4,
+  "max_capability_drop": 0.05
+}

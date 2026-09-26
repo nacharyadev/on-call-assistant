@@ -1,0 +1,22 @@
+{
+  "note": "Synthetic example. Replace with a versioned export of your team's actual artifact.",
+  "domains": [
+    {
+      "id": "checkout",
+      "definition": "Purchase flow and payment submission",
+      "repositories": ["example/checkout-api", "example/checkout-web"],
+      "prd_paths": ["prds/checkout.md"],
+      "decision_paths": ["decisions/adr-001.md"]
+    },
+    {
+      "id": "platform",
+      "definition": "Shared runtime and release infrastructure",
+      "repositories": ["example/platform-core", "example/deployments"]
+    }
+  ],
+  "tools": {
+    "jira": "Issue history, requirements, and status",
+    "splunk": "Logs and traces for incident reproduction",
+    "git": "Repository history, diffs, code search, and PRs"
+  }
+}

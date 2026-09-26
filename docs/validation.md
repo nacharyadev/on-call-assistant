@@ -1,0 +1,13 @@
+# Validation sequence
+
+The local tests establish graph scheduling, routing validation, status reporting, trajectory checks, and RRSI selection behavior. They do not establish that the assistant can solve real team tasks. Validate in this order so a failed result points to a specific layer.
+
+1. **Team context.** Populate `examples/agent_harness` from a versioned export. Check every domain has a definition and all owning repositories; verify cross-repo features, PRD/design paths, and tool descriptions. Hold this snapshot fixed for an experiment.
+2. **Graph and tool contracts.** Run `.venv/bin/python -m unittest discover -s tests`. For each configured Git, Jira, Splunk, reproducer, and Codebot adapter, test one recorded success and one failure response. Confirm that an unavailable tool remains visible as unavailable and that account-scoped requests reach the required lookup.
+3. **Trajectory suite.** Run `.venv/bin/on-call-trajectory run-suite examples/trajectory_cases.json --harness /path/to/populated/harness` with a configured model. Replace the synthetic cases with team cases covering all six capabilities, multi-repo routing, account investigation, dependency ordering, and tool failure. This checks the chosen route, not task correctness.
+4. **Outcome verifiers.** Build 5–10 reproducible cases per capability from resolved incidents and merged work. Use hidden expected domains/repos and task-owned checks: repro succeeds, regression/acceptance tests pass, seeded PR defects are identified with file evidence, release impacts include affected callers/tests, and dead-code cleanup preserves behavior. Score false positives and unsupported claims.
+5. **Baseline and holdout.** Freeze model version, prompts, tools, repo commits, service fixtures, verifier versions, and token accounting. Record success by capability and domain, token cost, tool failures, and no-submission rate. Split held-out cases by repository, domain, or time so near-duplicates do not cross the boundary.
+6. **RRSI experiment.** Connect `examples/langgraph_bridge.py` to the graph, a real proposer, and a semantic critic. Run paired incumbent/candidate trials with the same seeds. Require cited evidence for team-artifact or feature-map edits; keep PRDs/designs protected. Inspect candidate diffs, screening decisions, score and cost gates, and the final held-out comparison.
+7. **Shadow run.** Replay real requests without applying code changes or creating Jira tickets. Compare the assistant's route and proposed deliverable with the human outcome. Promote only after the held-out task scores and domain regression limits are satisfactory.
+
+The deterministic `examples/demo.json` experiment is a wiring check only. Its 0→1 held-out score does not measure the real agent.

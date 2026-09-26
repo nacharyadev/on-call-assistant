@@ -1,0 +1,35 @@
+[
+  {
+    "id": "live-checkout-investigation",
+    "capability": "bug_analysis",
+    "domain": "checkout",
+    "input": {
+      "text": "Investigate and reproduce intermittent checkout API 500 errors. Search older Jira incidents and recent commits."
+    },
+    "expected_trajectory": {
+      "capability": "bug_analysis",
+      "required_domains": ["checkout"],
+      "required_repositories": ["example/checkout-api", "example/checkout-web"],
+      "required_tools": ["jira_search", "github_recent_commits", "reproduce_backend"],
+      "tool_repositories": {"github_recent_commits": ["example/checkout-api"]},
+      "forbidden_tools": ["jira_create"]
+    }
+  },
+  {
+    "id": "live-release-impact",
+    "capability": "release_impact",
+    "domain": "platform",
+    "input": {
+      "text": "Compare platform-core and deployments release v2.4.0 against v2.3.0. Find affected owners, callers, and tests."
+    },
+    "expected_trajectory": {
+      "capability": "release_impact",
+      "required_domains": ["platform"],
+      "required_repositories": ["example/platform-core", "example/deployments"],
+      "required_tools": ["github_compare"],
+      "tool_repositories": {"github_compare": ["example/platform-core", "example/deployments"]},
+      "parallel_tools": [["github_compare", "github_compare"]],
+      "forbidden_tools": ["jira_create"]
+    }
+  }
+]

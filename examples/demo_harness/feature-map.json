@@ -1,0 +1,11 @@
+{
+  "note": "Synthetic, evolvable feature index. Every real change should cite a ground truth or tool result.",
+  "features": [
+    {
+      "name": "checkout submission",
+      "domain": "checkout",
+      "repositories": ["example/checkout-api", "example/checkout-web"],
+      "ground_truth": ["prds/checkout.md", "decisions/adr-001.md"]
+    }
+  ]
+}

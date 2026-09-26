@@ -1,0 +1,19 @@
+{
+  "baseline_harness": "demo_harness",
+  "evolve_tasks": "live_evolve.json",
+  "heldout_tasks": "live_heldout.json",
+  "output_dir": "../runs",
+  "proposer_command": ["../.venv/bin/python", "-m", "on_call_assistant.evolution.model_adapters", "propose"],
+  "runner_command": ["../.venv/bin/python", "-m", "on_call_assistant.evaluation.live_runner"],
+  "verifier_command": ["../.venv/bin/python", "-m", "on_call_assistant.evaluation.cli", "verify-rrsi"],
+  "critic_command": ["../.venv/bin/python", "-m", "on_call_assistant.evolution.model_adapters", "critic"],
+  "protected_paths": ["decisions", "prds", "team", "feature-map.json", "prompts/classifier.txt", "prompts/response.txt"],
+  "rounds": 1,
+  "trials_per_task": 1,
+  "calibration_repeats": 1,
+  "max_candidates": 1,
+  "budget_min": 1,
+  "budget_max": 1,
+  "exploration_slots": 0,
+  "timeout_seconds": 180
+}

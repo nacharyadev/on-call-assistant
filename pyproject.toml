@@ -1,0 +1,30 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "on-call-assistant"
+version = "0.1.0"
+description = "LangGraph on-call assistant with regularized harness evolution"
+requires-python = ">=3.11"
+dependencies = [
+  "langgraph>=0.3,<2",
+  "fastapi>=0.115,<1",
+  "httpx>=0.27,<1",
+  "openai>=1,<3",
+]
+
+[project.optional-dependencies]
+serve = ["uvicorn>=0.30,<1"]
+
+[project.scripts]
+on-call-assistant = "on_call_assistant.cli:main"
+on-call-evolve = "on_call_assistant.evolution.cli:main"
+on-call-trajectory = "on_call_assistant.evaluation.cli:main"
+# Compatibility during the parallel-session migration.
+rrsi-oncall = "on_call_assistant.evolution.cli:main"
+rrsi-oca = "on_call_assistant.cli:main"
+rrsi-oca-trajectory = "on_call_assistant.evaluation.cli:main"
+
+[tool.setuptools.packages.find]
+where = ["src"]

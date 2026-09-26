@@ -1,0 +1,305 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="color-scheme" content="dark">
+  <title>RRSI On-call · Architecture</title>
+  <style>
+    :root {
+      --bg: #0d151a;
+      --surface: #142128;
+      --surface-2: #192a31;
+      --line: #3a5159;
+      --text: #e9efeb;
+      --muted: #a9bbb9;
+      --teal: #66d3be;
+      --teal-soft: rgba(102, 211, 190, .13);
+      --amber: #ffbd70;
+      --amber-soft: rgba(255, 189, 112, .13);
+      --red: #eb8f83;
+      --display: "Iowan Old Style", "Baskerville", Georgia, serif;
+      --body: "Avenir Next", "Trebuchet MS", sans-serif;
+      --mono: "SFMono-Regular", Menlo, Consolas, monospace;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+      margin: 0;
+      min-width: 320px;
+      color: var(--text);
+      background:
+        radial-gradient(circle at 85% 4%, rgba(102,211,190,.1), transparent 30rem),
+        radial-gradient(circle at 0% 66%, rgba(255,189,112,.055), transparent 32rem),
+        linear-gradient(rgba(255,255,255,.025) 1px, transparent 1px),
+        linear-gradient(90deg, rgba(255,255,255,.025) 1px, transparent 1px),
+        var(--bg);
+      background-size: auto, auto, 32px 32px, 32px 32px, auto;
+      font-family: var(--body);
+      line-height: 1.45;
+    }
+    button { font: inherit; }
+    .shell { max-width: 1500px; margin: 0 auto; padding: 30px clamp(20px, 4vw, 64px) 70px; }
+    .masthead { display: flex; justify-content: space-between; align-items: center; gap: 24px; border-bottom: 1px solid var(--line); padding-bottom: 18px; }
+    .brand { font: 700 13px var(--mono); letter-spacing: .15em; text-transform: uppercase; }
+    .brand-mark { display: inline-block; width: 13px; height: 13px; margin-right: 12px; transform: rotate(45deg); background: var(--teal); vertical-align: -1px; box-shadow: 0 0 25px rgba(102,211,190,.5); }
+    .meta { color: var(--muted); font: 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; text-align: right; }
+    .hero { display: grid; grid-template-columns: minmax(0, 1.2fr) minmax(230px, .45fr); gap: 40px; align-items: end; padding: 54px 0 45px; }
+    .eyebrow { font: 12px var(--mono); letter-spacing: .14em; text-transform: uppercase; color: var(--teal); }
+    h1 { font: 400 clamp(42px, 5vw, 76px)/.98 var(--display); letter-spacing: -.045em; max-width: 850px; margin: 13px 0 0; }
+    .lede { color: var(--muted); font-size: 16px; max-width: 390px; margin: 0 0 3px; }
+    .rail-heading { display: flex; align-items: center; gap: 18px; margin: 0 0 17px; }
+    .rail-heading .num { color: var(--teal); font: 12px var(--mono); }
+    .rail-heading.amber .num { color: var(--amber); }
+    .rail-heading h2 { margin: 0; font: 500 15px var(--body); letter-spacing: .01em; }
+    .rail-heading .rule { height: 1px; background: var(--line); flex: 1; }
+    .rail-heading .tag { font: 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .08em; }
+    .context-grid { display: grid; grid-template-columns: 1.4fr 1fr 1fr; gap: 12px; }
+    .context-card { min-height: 190px; padding: 20px 22px; background: rgba(20,33,40,.72); border: 1px solid var(--line); }
+    .context-card h3 { margin: 12px 0 7px; font: 400 25px/1.1 var(--display); }
+    .context-card p { margin: 0; color: var(--muted); font-size: 13px; }
+    .context-kicker { color: var(--teal); font: 10px var(--mono); text-transform: uppercase; letter-spacing: .1em; }
+    .mapping { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; margin-top: 17px; font: 11px var(--mono); }
+    .mapping .domain { color: var(--teal); padding: 5px 8px; background: var(--teal-soft); }
+    .mapping .branch { color: var(--muted); }
+    .mapping .repo { border: 1px solid var(--line); padding: 5px 7px; }
+    .context-card .row { display: flex; flex-wrap: wrap; gap: 7px; margin-top: 20px; }
+    .context-link { display: flex; justify-content: center; align-items: center; min-height: 47px; color: var(--teal); font: 11px var(--mono); letter-spacing: .02em; text-align: center; }
+    .context-link::before, .context-link::after { content: ""; height: 1px; background: rgba(102,211,190,.42); flex: 1; }
+    .context-link span { padding: 0 16px; }
+    .flow { display: grid; gap: 0; align-items: stretch; }
+    .flow.execution { grid-template-columns: minmax(0, 1.05fr) 42px minmax(0, 1.8fr) 42px minmax(0, 1.05fr) 42px minmax(0, 1.05fr); }
+    .flow.evolution { grid-template-columns: minmax(0, 1.15fr) 42px minmax(0, 1.12fr) 42px minmax(0, 1.12fr) 42px minmax(0, 1.12fr) 42px minmax(0, 1.2fr); }
+    .node {
+      position: relative; width: 100%; min-height: 240px; padding: 23px 22px 21px;
+      color: var(--text); background: rgba(20,33,40,.93); border: 1px solid var(--line);
+      border-radius: 2px; text-align: left; cursor: pointer; display: flex; flex-direction: column;
+      transition: background .2s ease, border-color .2s ease, transform .2s ease, box-shadow .2s ease;
+    }
+    .node:hover, .node:focus-visible { background: var(--surface-2); transform: translateY(-3px); }
+    .node:focus-visible { outline: 2px solid var(--text); outline-offset: 3px; }
+    .node.active[data-lane="execution"] { border-color: var(--teal); box-shadow: inset 0 3px 0 var(--teal), 0 12px 30px rgba(0,0,0,.13); }
+    .node.active[data-lane="evolution"] { border-color: var(--amber); box-shadow: inset 0 3px 0 var(--amber), 0 12px 30px rgba(0,0,0,.13); }
+    .node-id { font: 11px var(--mono); letter-spacing: .08em; text-transform: uppercase; color: var(--teal); }
+    .evolution .node-id { color: var(--amber); }
+    .node h3 { margin: 23px 0 8px; font: 400 clamp(23px, 2.1vw, 32px)/1.08 var(--display); letter-spacing: -.02em; }
+    .node p { margin: 0; color: var(--muted); font-size: 13px; }
+    .node .foot { margin-top: auto; padding-top: 21px; display: flex; flex-wrap: wrap; gap: 7px; }
+    .chip { font: 10px var(--mono); color: var(--muted); border: 1px solid var(--line); padding: 5px 7px; white-space: nowrap; }
+    .chip.accent { color: var(--teal); border-color: rgba(102,211,190,.45); background: var(--teal-soft); }
+    .evolution .chip.accent { color: var(--amber); border-color: rgba(255,189,112,.45); background: var(--amber-soft); }
+    .arrow { display: flex; align-items: center; justify-content: center; color: var(--teal); font: 27px var(--mono); opacity: .9; }
+    .evolution .arrow { color: var(--amber); }
+    .runtime-inner { margin-top: auto; padding-top: 17px; display: grid; grid-template-columns: minmax(0, .8fr) 19px minmax(0, 1.2fr); align-items: center; gap: 7px; }
+    .mini { display: flex; flex-direction: column; justify-content: center; min-height: 75px; padding: 10px; color: var(--teal); background: var(--teal-soft); border-left: 2px solid var(--teal); font: 11px var(--mono); line-height: 1.35; }
+    .mini span { margin-top: 5px; color: var(--muted); font: 10px var(--body); }
+    .mini-arrow { text-align: center; color: var(--teal); }
+    .workers { display: grid; gap: 4px; }
+    .workers span { color: var(--teal); background: var(--teal-soft); padding: 5px 8px; font: 10px var(--mono); }
+    .bridge { position: relative; margin: 16px 0 23px; padding: 12px 20px; border: 1px dashed rgba(102,211,190,.45); color: var(--muted); background: rgba(102,211,190,.045); display: flex; align-items: center; justify-content: space-between; gap: 20px; font: 11px var(--mono); letter-spacing: .03em; }
+    .bridge b { color: var(--teal); font-weight: 500; }
+    .bridge .glyph { color: var(--teal); font-size: 19px; }
+    .evolution-section { margin-top: 2px; }
+    .return { display: flex; align-items: center; justify-content: flex-end; gap: 15px; margin: 18px 0 30px; color: var(--amber); font: 11px var(--mono); letter-spacing: .04em; text-transform: uppercase; }
+    .return::before { content: ""; height: 1px; background: rgba(255,189,112,.55); flex: 1; }
+    .return .loop { font-size: 21px; line-height: 1; }
+    .detail { display: grid; grid-template-columns: 185px minmax(0, 1fr) 220px; gap: 26px; padding: 24px 0 26px; border-top: 1px solid var(--line); border-bottom: 1px solid var(--line); align-items: start; }
+    .detail-label { font: 11px var(--mono); color: var(--muted); text-transform: uppercase; letter-spacing: .1em; }
+    .detail h3 { margin: 0 0 8px; font: 400 27px/1.1 var(--display); }
+    .detail p { margin: 0; color: var(--muted); font-size: 14px; max-width: 740px; }
+    .detail .io { font: 11px/1.6 var(--mono); color: var(--teal); overflow-wrap: anywhere; }
+    .heldout { display: grid; grid-template-columns: minmax(0, .5fr) minmax(0, 1fr); gap: 32px; align-items: center; margin-top: 30px; padding: 24px 28px; background: rgba(255,189,112,.07); border-left: 3px solid var(--amber); }
+    .heldout h2 { font: 400 25px/1.1 var(--display); margin: 0 0 4px; }
+    .heldout p { color: var(--muted); margin: 0; font-size: 13px; }
+    .heldout .formula { font: 12px/1.5 var(--mono); color: var(--amber); }
+    .footer { display: flex; justify-content: space-between; gap: 20px; margin-top: 30px; color: var(--muted); font: 11px var(--mono); }
+    .footer a { color: var(--teal); text-decoration: none; border-bottom: 1px solid rgba(102,211,190,.5); }
+    .footer a:hover { border-bottom-color: var(--teal); }
+    @media (max-width: 1100px) {
+      .context-grid { grid-template-columns: repeat(2, 1fr); }
+      .context-card:first-child { grid-column: 1 / -1; }
+      .flow.execution, .flow.evolution { display: flex; flex-wrap: wrap; gap: 9px; }
+      .flow .node { flex: 1 1 210px; min-height: 235px; }
+      .flow .arrow { display: none; }
+      .node h3 { font-size: 28px; }
+      .detail { grid-template-columns: 150px 1fr; }
+      .detail .io { grid-column: 2; }
+    }
+    @media (max-width: 650px) {
+      .shell { padding: 22px 16px 40px; }
+      .masthead { align-items: flex-start; }
+      .meta { max-width: 105px; }
+      .hero { display: block; padding: 42px 0 34px; }
+      h1 { font-size: 45px; }
+      .lede { margin-top: 18px; }
+      .rail-heading .tag { display: none; }
+      .context-grid { display: block; }
+      .context-card { min-height: 0; margin-bottom: 9px; }
+      .context-card:first-child { grid-column: auto; }
+      .context-link { line-height: 1.5; }
+      .flow.execution, .flow.evolution { display: block; }
+      .flow .node { min-height: 0; margin: 0; }
+      .flow .arrow { display: flex; height: 30px; transform: rotate(90deg); }
+      .node h3 { margin-top: 16px; }
+      .node .foot { padding-top: 20px; }
+      .bridge { margin: 17px 0 22px; }
+      .bridge .glyph { display: none; }
+      .detail { display: block; }
+      .detail h3 { margin-top: 12px; }
+      .detail .io { margin-top: 15px; }
+      .heldout { display: block; padding: 22px; }
+      .heldout .formula { margin-top: 14px; }
+      .footer { display: block; }
+      .footer span { display: block; margin-bottom: 9px; }
+    }
+    @media (prefers-reduced-motion: reduce) {
+      html { scroll-behavior: auto; }
+      .node { transition: none; }
+    }
+  </style>
+</head>
+<body>
+  <main class="shell">
+    <header class="masthead">
+      <div class="brand"><span class="brand-mark" aria-hidden="true"></span>RRSI / ON-CALL</div>
+      <div class="meta">Architecture map · Local, offline view</div>
+    </header>
+
+    <section class="hero" aria-labelledby="page-title">
+      <div>
+        <div class="eyebrow">A recursive harness for a software factory</div>
+        <h1 id="page-title">The agent works.<br>The harness learns.</h1>
+      </div>
+      <p class="lede">The on-call app serves requests with a pinned harness. A separate RRSI job invokes an isolated app snapshot to test candidate harnesses, then hands a selected version to the release process.</p>
+    </section>
+
+    <section aria-labelledby="context-heading">
+      <div class="rail-heading"><span class="num">00 /</span><h2 id="context-heading">Team knowledge and tool access</h2><span class="rule"></span><span class="tag">Versioned context per experiment</span></div>
+      <div class="context-grid">
+        <div class="context-card">
+          <div class="context-kicker">Evolvable index</div><h3>Team artifact + feature map</h3>
+          <p>Defines domains, features, one-to-many Git repo mappings, and tool access. Changes cite evidence.</p>
+          <div class="mapping" aria-label="A domain can map to multiple repositories"><span class="domain">Domain</span><span class="branch">↳</span><span class="repo">Repo A</span><span class="repo">Repo B</span><span class="repo">…</span></div>
+        </div>
+        <div class="context-card">
+          <div class="context-kicker">Ground truth · fixed per run</div><h3>PRDs + tech designs</h3>
+          <p>Requirements, acceptance criteria, architectural constraints, and prior tradeoffs.</p>
+          <div class="row"><span class="chip">PRDs</span><span class="chip">ADRs</span><span class="chip">Team docs</span></div>
+        </div>
+        <div class="context-card">
+          <div class="context-kicker">Execution interfaces</div><h3>Connected tools</h3>
+          <p>Cataloged in the team artifact; workers fetch evidence and act in mapped repositories.</p>
+          <div class="row"><span class="chip accent">Jira</span><span class="chip accent">Splunk</span><span class="chip accent">Git</span></div>
+        </div>
+      </div>
+      <div class="context-link"><span>Planner routes through the maps and retrieves ground truth ↓ &nbsp; Workers call Jira, Splunk, and Git ↓</span></div>
+    </section>
+
+    <section aria-labelledby="execution-heading">
+      <div class="rail-heading"><span class="num">01 /</span><h2 id="execution-heading">Task execution</h2><span class="rule"></span><span class="tag">App runtime · one isolated trial</span></div>
+      <div class="flow execution">
+        <button type="button" class="node active" data-lane="execution" data-detail="tasks" aria-pressed="true">
+          <span class="node-id">Input / benchmark</span><h3>On-call task</h3>
+          <p>A versioned case with a public request and a private verifier.</p>
+          <span class="foot"><span class="chip">Bugs</span><span class="chip">Features</span><span class="chip">Reviews</span><span class="chip">Releases</span><span class="chip">Debt</span></span>
+        </button>
+        <div class="arrow" aria-hidden="true">→</div>
+        <button type="button" class="node" data-lane="execution" data-detail="graph" aria-pressed="false">
+          <span class="node-id">Frozen graph + candidate harness</span><h3>LangGraph runtime</h3>
+          <p>The planner chooses a domain and trajectory; workers ground work in docs and tools.</p>
+          <span class="runtime-inner" aria-hidden="true"><span class="mini">PLANNER<span>route · plan · stop</span></span><span class="mini-arrow">→</span><span class="workers"><span>BUG / FEATURE</span><span>REVIEW / IMPACT</span><span>DEBT / TOOLS</span></span></span>
+        </button>
+        <div class="arrow" aria-hidden="true">→</div>
+        <button type="button" class="node" data-lane="execution" data-detail="output" aria-pressed="false">
+          <span class="node-id">Measured result</span><h3>Deliverable</h3>
+          <p>Patch, diagnosis, review, impact report, or cleanup plus total policy tokens.</p>
+          <span class="foot"><span class="chip accent">Artifact</span><span class="chip accent">Tokens</span><span class="chip accent">Trace</span></span>
+        </button>
+        <div class="arrow" aria-hidden="true">→</div>
+        <button type="button" class="node" data-lane="execution" data-detail="verify" aria-pressed="false">
+          <span class="node-id">Outside the agent</span><h3>Verifier</h3>
+          <p>Task-owned tests or assertions score the outcome and label failures.</p>
+          <span class="foot"><span class="chip accent">Reward 0–1</span><span class="chip">Failure tags</span></span>
+        </button>
+      </div>
+    </section>
+
+    <div class="bridge" aria-label="Trial outcomes feed the improvement loop"><span><b>Trial results ↓</b> &nbsp; Scores per capability, token cost, and failure tags become evidence for the next proposal.</span><span class="glyph" aria-hidden="true">↘</span></div>
+
+    <section class="evolution-section" aria-labelledby="evolution-heading">
+      <div class="rail-heading amber"><span class="num">02 /</span><h2 id="evolution-heading">Harness improvement</h2><span class="rule"></span><span class="tag">Separate RRSI job · repeated rounds</span></div>
+      <div class="flow evolution">
+        <button type="button" class="node" data-lane="evolution" data-detail="evidence" aria-pressed="false">
+          <span class="node-id">Feedback + memory</span><h3>Evidence</h3>
+          <p>Aggregate failures and every accepted or rejected edit stay in the history.</p>
+          <span class="foot"><span class="chip">Score</span><span class="chip">Cost</span><span class="chip">History</span></span>
+        </button>
+        <div class="arrow" aria-hidden="true">→</div>
+        <button type="button" class="node" data-lane="evolution" data-detail="proposer" aria-pressed="false">
+          <span class="node-id">Regularized search</span><h3>Proposer</h3>
+          <p>Suggests small, attributable edits; explores unused components if progress stalls.</p>
+          <span class="foot"><span class="chip accent">Edit budget ↓</span></span>
+        </button>
+        <div class="arrow" aria-hidden="true">→</div>
+        <button type="button" class="node" data-lane="evolution" data-detail="candidate" aria-pressed="false">
+          <span class="node-id">H′ from Hₜ</span><h3>Candidate</h3>
+          <p>A copied harness may improve routing, feature maps, retrieval, and tool use.</p>
+          <span class="foot"><span class="chip">Diff</span><span class="chip">Hypothesis</span></span>
+        </button>
+        <div class="arrow" aria-hidden="true">→</div>
+        <button type="button" class="node" data-lane="evolution" data-detail="critic" aria-pressed="false">
+          <span class="node-id">Before evaluation</span><h3>Leakage critic</h3>
+          <p>Rejects task leakage; checks evidence cited for knowledge-map changes.</p>
+          <span class="foot"><span class="chip accent">Screen</span></span>
+        </button>
+        <div class="arrow" aria-hidden="true">→</div>
+        <button type="button" class="node" data-lane="evolution" data-detail="selector" aria-pressed="false">
+          <span class="node-id">Paired trials + guards</span><h3>Selector</h3>
+          <p>Retains a candidate only when measured gain, cost, and capability checks allow it.</p>
+          <span class="foot"><span class="chip accent">Hₜ₊₁</span><span class="chip">or keep Hₜ</span></span>
+        </button>
+      </div>
+      <div class="return"><span>Selected harness returns to the next LangGraph trial</span><span class="loop" aria-hidden="true">↺</span></div>
+    </section>
+
+    <section class="detail" aria-live="polite" aria-label="Selected architecture stage">
+      <div class="detail-label">Click a stage<br>to inspect it</div>
+      <div><h3 id="detail-title">On-call task</h3><p id="detail-copy">The suite spans six capabilities: reproduce and analyze bugs, fix bugs, implement features, review PRs, assess release impact, and remove tech debt. The runner sees only the public task input.</p></div>
+      <div class="io" id="detail-io">INPUT · task ID + capability + public input</div>
+    </section>
+
+    <aside class="heldout" aria-label="Held-out evaluation">
+      <div><h2>Transfer is the final test.</h2><p>Held-out tasks are untouched during proposal and selection.</p></div>
+      <div class="formula">Baseline H₀ vs selected Hₜ → same held-out tasks, seeds, verifier, and token accounting.</div>
+    </aside>
+
+    <footer class="footer"><span>On-call assistant · standalone architecture view</span><span><a href="README.md">Project guide</a> &nbsp;·&nbsp; <a href="src/on_call_assistant/evolution/core.py">Evolution loop</a></span></footer>
+  </main>
+  <script>
+    const details = {
+      tasks: ["On-call task", "The suite spans six capabilities: reproduce and analyze bugs, fix bugs, implement features, review PRs, assess release impact, and remove tech debt. The runner sees only the public task input.", "INPUT · task ID + capability + public input"],
+      graph: ["LangGraph runtime", "The planner uses the team artifact and feature map to infer a domain, select one or more repositories, and choose a trajectory. Workers retrieve PRDs and technical designs as ground truths, then use Jira, Splunk, and Git for evidence and action.", "INPUT · task + candidate harness + fixed ground truths + seed"],
+      output: ["Deliverable", "The graph returns its work product and total policy-token usage across the planner and every worker. The harness records the trace for diagnosis.", "OUTPUT · artifact + policy tokens + trace"],
+      verify: ["Independent verifier", "A separate verifier checks the actual result, including domain and repository selection where relevant. Coding tasks can run tests; review and impact tasks need grounded assertions. It returns a reward and failure tags.", "OUTPUT · reward 0–1 + failure tags"],
+      evidence: ["Evidence", "The proposer receives aggregate capability scores, failure tags, and a history of hypotheses, diffs, measured gains, costs, and selection outcomes. Rejected ideas remain visible as negative evidence.", "STATE · scores + cost + edit history"],
+      proposer: ["Proposer", "An annealed budget allows broader changes early and fewer independent edits later. When progress stalls, proposal slots are directed toward underused harness components; unproductive components become pruning targets.", "OUTPUT · atomic edits + hypotheses"],
+      candidate: ["Candidate harness", "Each proposal copies the incumbent harness and applies text-file edits inside that copy. It can improve the team artifact, feature map, ground-truth retrieval, routing, or tool-use policy. PRDs and technical designs stay fixed during the experiment; index edits must carry source references.", "OUTPUT · isolated H′ directory + diff + cited sources"],
+      critic: ["Leakage critic", "A static screen checks exact evolve-task terms. A semantic critic should reject hard-coded answers and check that changes to domain and feature maps are supported by cited PRDs, designs, or tool evidence before evaluation.", "DECISION · approve or reject before trial"],
+      selector: ["Selector", "Candidates face paired trials against the incumbent. The selector applies the historical score floor, gain-dependent token-cost rule, within-noise cost or novelty rule, and regression limits for both capabilities and domains.", "DECISION · promote H′ or retain Hₜ"]
+    };
+    const nodes = [...document.querySelectorAll(".node[data-detail]")];
+    for (const node of nodes) {
+      node.addEventListener("click", () => {
+        for (const other of nodes) {
+          other.classList.toggle("active", other === node);
+          other.setAttribute("aria-pressed", String(other === node));
+        }
+        const [title, copy, io] = details[node.dataset.detail];
+        document.getElementById("detail-title").textContent = title;
+        document.getElementById("detail-copy").textContent = copy;
+        document.getElementById("detail-io").textContent = io;
+      });
+    }
+  </script>
+</body>
+</html>

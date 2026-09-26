@@ -1,0 +1,34 @@
+[
+  {
+    "id": "heldout-checkout-failure",
+    "capability": "bug_analysis",
+    "domain": "checkout",
+    "input": {
+      "text": "Customers sometimes receive server errors after submitting a checkout payment. Trace the backend failure, look for matching Jira reports, and inspect recent API changes."
+    },
+    "expected_trajectory": {
+      "capability": "bug_analysis",
+      "required_domains": ["checkout"],
+      "required_tools": ["jira_search", "github_recent_commits", "reproduce_backend"],
+      "tool_repositories": {"github_recent_commits": ["example/checkout-api"]},
+      "forbidden_tools": ["jira_create"]
+    }
+  },
+  {
+    "id": "heldout-platform-delta",
+    "capability": "release_impact",
+    "domain": "platform",
+    "input": {
+      "text": "For the upcoming platform rollout, compare tag v2.5.0 with v2.4.0 in platform-core and deployments, then identify likely consumers and regression tests."
+    },
+    "expected_trajectory": {
+      "capability": "release_impact",
+      "required_domains": ["platform"],
+      "required_repositories": ["example/platform-core", "example/deployments"],
+      "required_tools": ["github_compare"],
+      "tool_repositories": {"github_compare": ["example/platform-core", "example/deployments"]},
+      "parallel_tools": [["github_compare", "github_compare"]],
+      "forbidden_tools": ["jira_create"]
+    }
+  }
+]
