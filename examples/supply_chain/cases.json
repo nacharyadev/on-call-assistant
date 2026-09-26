@@ -10,6 +10,8 @@
       "account_id": "acct-aurora-07",
       "required_domains": ["inventory", "warehouse", "manufacturing"],
       "required_repositories": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "required_focus_repositories": ["northstar/inventory-ledger"],
+      "forbidden_focus_repositories": ["northstar/inventory-ops-ui", "northstar/inventory-forecast-ui", "northstar/warehouse-ui", "northstar/scanner-ui", "northstar/mes-ui", "northstar/production-planning-ui"],
       "required_tools": ["admin_lookup", "splunk_search", "jira_search", "github_recent_commits", "reproduce_backend", "codebot"],
       "completed_tools": ["admin_lookup", "splunk_search", "jira_search", "github_recent_commits", "reproduce_backend"],
       "tool_repositories": {
@@ -47,6 +49,8 @@
       "capability": "release_impact",
       "required_domains": ["inventory", "warehouse", "manufacturing"],
       "required_repositories": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "required_focus_repositories": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"],
+      "forbidden_focus_repositories": ["northstar/scanner-ui", "northstar/mes-ui"],
       "required_tools": ["github_compare", "codebot"],
       "completed_tools": ["github_compare"],
       "tool_repositories": {"github_compare": ["northstar/inventory-ledger", "northstar/warehouse-execution", "northstar/manufacturing-execution"]},

@@ -10,6 +10,7 @@ from langgraph.graph import END, START, StateGraph
 from langgraph.types import Send
 
 from ..knowledge.loader import _document, _load_json
+from ..knowledge.catalog import build_repository_catalog
 from .impact import impact_candidates
 from ..integrations.model import ModelPort, create_model
 from .planning import CAPABILITIES, DEFAULT_PROMPTS, _validate_plan
@@ -30,6 +31,7 @@ def create_graph(
     root = Path(harness_dir).resolve()
     artifact = _load_json(root, "team/team-artifact.json")
     features = _load_json(root, "feature-map.json")
+    repository_catalog = build_repository_catalog(artifact, features)
     model = model or create_model()
     tools = tools or HTTPTools()
 
@@ -72,6 +74,7 @@ def create_graph(
         payload = {
             "request": state["request"], "capability": state["capability"],
             "team_artifact": artifact, "feature_map": features,
+            "repository_catalog": repository_catalog,
             "jira_creation_allowed": allow_jira_create,
         }
         tokens_used = 0
@@ -101,7 +104,10 @@ def create_graph(
         selected_features = [item for item in features.get("features", [])
                              if item.get("name") in state["plan"]["feature_names"]]
         context = {"domains": selected_domains, "features": selected_features,
-                   "repositories": state["plan"]["repositories"], "documents": documents}
+                   "repositories": state["plan"]["repositories"],
+                   "focus_repositories": state["plan"]["focus_repositories"],
+                   "repository_catalog": {name: repository_catalog[name] for name in state["plan"]["repositories"]},
+                   "documents": documents}
         return {"context": context, "trace": [{"node": "context_synthesizer", "document_count": len(documents)}]}
 
     def dispatch(state: OCAState) -> dict[str, Any]:
@@ -181,7 +187,7 @@ def create_graph(
             result, tokens = model.complete_json(prompt("response"), payload)
             tokens_used += tokens
             try:
-                result = validate_response(result, state["tasks"])
+                result = validate_response(result, state["tasks"], state["capability"])
                 break
             except ValueError as exc:
                 if attempt == 2:
@@ -197,6 +203,7 @@ def create_graph(
             "domains": state["plan"]["domain_ids"],
             "features": state["plan"]["feature_names"],
             "repositories": state["plan"]["repositories"],
+            "focus_repositories": state["plan"]["focus_repositories"],
         }
         return {"answer": result, "policy_tokens": tokens_used,
                 "trace": [{"node": "response_synthesizer", "status": "completed"}]}

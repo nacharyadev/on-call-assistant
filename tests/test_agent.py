@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from on_call_assistant.agent import create_graph
 from on_call_assistant.agent.impact import impact_candidates
 from on_call_assistant.agent.planning import _validate_plan
+from on_call_assistant.knowledge.catalog import build_repository_catalog
 from on_call_assistant.agent.response import validate_response
 from on_call_assistant.api.service import create_app
 from on_call_assistant.evaluation.trajectory import evaluate_trajectory
@@ -118,6 +119,14 @@ class OcaTests(unittest.TestCase):
             validate_response({**answer, "results": [{"status": "invented"}]}, tasks)
         with self.assertRaisesRegex(ValueError, "unknown task ID"):
             validate_response({**answer, "evidence": [{"task_id": "imaginary"}]}, tasks)
+        with self.assertRaisesRegex(ValueError, "candidate"):
+            validate_response(answer, tasks, "release_impact")
+        with self.assertRaisesRegex(ValueError, "affected_features"):
+            validate_response({**answer, "summary": "Potential checkout impact"}, tasks, "release_impact")
+        release_answer = {**answer, "summary": "Potential checkout impact", "affected_features": [],
+                          "owners": [], "consumers": [], "tests": []}
+        self.assertEqual(validate_response(release_answer, tasks, "release_impact")["summary"],
+                         "Potential checkout impact")
 
     def test_failed_dependency_blocks_followup(self):
         class FailingTools(FakeTools):
@@ -167,6 +176,21 @@ class OcaTests(unittest.TestCase):
         self.assertEqual(_validate_plan(ticket, artifact, features, True)["tasks"][0]["tool"],
                          "jira_create")
 
+    def test_malformed_model_lists_are_repairable_validation_errors(self):
+        artifact = json.loads((self.root / "team" / "team-artifact.json").read_text())
+        features = json.loads((self.root / "feature-map.json").read_text())
+        with self.assertRaisesRegex(ValueError, "unknown domains"):
+            _validate_plan({"domain_ids": [["checkout"]], "feature_names": [], "tasks": []},
+                           artifact, features, False)
+        plan = self.plan()
+        plan["tasks"][0]["depends_on"] = [["tickets"]]
+        with self.assertRaisesRegex(ValueError, "depends_on"):
+            _validate_plan(plan, artifact, features, False)
+        answer = {"summary": "Investigated", "findings": [{"claim": "Issue",
+                  "evidence_tasks": [["history"]]}], "evidence": [], "remaining_work": []}
+        with self.assertRaisesRegex(ValueError, "unknown task ID"):
+            validate_response(answer, [{"id": "history"}])
+
     def test_explicit_account_in_text_routes_to_lookup(self):
         plan = {"domain_ids": ["checkout"], "feature_names": [], "tasks": [
             {"id": "customer", "tool": "admin_lookup", "arguments": {"account_id": "acct-123"},
@@ -196,6 +220,58 @@ class OcaTests(unittest.TestCase):
         self.assertEqual(len(matched), 1)
         self.assertEqual(matched[0]["file"], "checkout/submit.py")
         self.assertEqual(matched[0]["consumers"], ["org/web"])
+
+    def test_multi_repo_harness_routes_frontend_and_backend_workers(self):
+        artifact = {"domains": [{"id": "checkout", "repositories": [
+            {"name": "org/web", "kind": "frontend", "responsibility": "checkout form",
+             "signals": ["submit button"], "depends_on": ["org/api"]},
+            {"name": "org/api", "kind": "backend", "responsibility": "order creation",
+             "signals": ["order POST"], "depends_on": []},
+            {"name": "org/admin", "kind": "frontend", "responsibility": "operations dashboard"},
+        ]}]}
+        features = {"features": [{"name": "submission", "repositories": ["org/web", "org/api"],
+                    "components": [
+                        {"repository": "org/web", "role": "form", "path_globs": ["src/checkout/**"]},
+                        {"repository": "org/api", "role": "endpoint", "path_globs": ["src/orders/**"]},
+                    ]}]}
+        (self.root / "team" / "team-artifact.json").write_text(json.dumps(artifact))
+        (self.root / "feature-map.json").write_text(json.dumps(features))
+        plan = {"domain_ids": ["checkout"], "feature_names": ["submission"], "tasks": [
+            {"id": "ui", "tool": "codebot", "arguments": {"repository": "org/web", "task": "update form"}, "depends_on": []},
+            {"id": "api", "tool": "codebot", "arguments": {"repository": "org/api", "task": "update endpoint"}, "depends_on": []},
+        ]}
+        graph = create_graph(self.root, model=FakeModel(plan), tools=FakeTools())
+        output = graph.invoke({"request": {"text": "Add a checkout submission feature"}, "capability": "feature"},
+                              config={"configurable": {"thread_id": "multi-repo"}})
+        self.assertEqual(output["context"]["repository_catalog"]["org/web"]["kind"], "frontend")
+        self.assertEqual(output["plan"]["focus_repositories"], ["org/api", "org/web"])
+        self.assertEqual(evaluate_trajectory(output, {
+            "capability": "feature", "required_focus_repositories": ["org/api", "org/web"],
+            "forbidden_focus_repositories": ["org/admin"],
+            "parallel_tools": [["codebot", "codebot"]],
+        })["reward"], 1.0)
+
+    def test_harness_rejects_unknown_dependency_and_component(self):
+        artifact = {"domains": [{"id": "d", "repositories": [
+            {"name": "org/web", "kind": "frontend", "depends_on": ["org/missing"]}]}]}
+        with self.assertRaisesRegex(ValueError, "repository dependency"):
+            build_repository_catalog(artifact, {"features": []})
+        artifact["domains"][0]["repositories"][0]["depends_on"] = []
+        with self.assertRaisesRegex(ValueError, "component outside"):
+            build_repository_catalog(artifact, {"features": [{"name": "f", "repositories": ["org/web"],
+                "components": [{"repository": "org/missing", "role": "endpoint"}]}]})
+
+    def test_release_impact_reports_exact_feature_component(self):
+        tasks = [{"id": "compare", "tool": "github_compare", "arguments": {"repository": "org/web"}}]
+        results = [{"task_id": "compare", "outcome": {"data": {"files": [
+            {"filename": "src/checkout/form.tsx"}, {"filename": "src/admin/report.tsx"}]}}}]
+        features = {"features": [{"name": "submission", "repositories": ["org/web"],
+            "components": [{"repository": "org/web", "role": "checkout form",
+                            "path_globs": ["src/checkout/**"], "tests": ["tests/form.spec.ts"]}]}]}
+        candidates = impact_candidates(tasks, results, features)
+        self.assertEqual(len(candidates), 1)
+        self.assertEqual(candidates[0]["component_role"], "checkout form")
+        self.assertEqual(candidates[0]["tests"], ["tests/form.spec.ts"])
 
     def test_trajectory_eval_checks_tools_parallel_wave_and_dependency(self):
         graph = create_graph(self.root, model=FakeModel(self.plan()), tools=FakeTools())

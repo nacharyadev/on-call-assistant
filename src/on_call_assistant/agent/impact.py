@@ -23,16 +23,24 @@ def impact_candidates(tasks: list[dict[str, Any]], results: list[dict[str, Any]]
             for feature in feature_map.get("features", []):
                 if repository not in feature.get("repositories", []):
                     continue
-                patterns = feature.get("path_globs", {}).get(repository, [])
-                matched = [pattern for pattern in patterns if fnmatch(filename, pattern)]
-                if matched or not patterns:
+                components = [component for component in feature.get("components", [])
+                              if component.get("repository") == repository]
+                if not components:
+                    components = [{"role": None,
+                                   "path_globs": feature.get("path_globs", {}).get(repository, [])}]
+                for component in components:
+                    patterns = component.get("path_globs", [])
+                    matched = [pattern for pattern in patterns if fnmatch(filename, pattern)]
+                    if patterns and not matched:
+                        continue
                     candidates.append({
                         "feature": feature.get("name"), "repository": repository,
                         "file": filename, "match": "path" if matched else "repository",
+                        "component_role": component.get("role"),
                         "url": file.get("url"),
                         "owners": feature.get("owners", []),
                         "consumers": feature.get("consumers", []),
-                        "tests": feature.get("tests", []),
+                        "tests": sorted(set(feature.get("tests", []) + component.get("tests", []))),
                         "evidence_task_id": result["task_id"],
                     })
     return candidates

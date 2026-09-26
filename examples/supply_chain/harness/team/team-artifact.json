@@ -5,7 +5,12 @@
     {
       "id": "inventory",
       "definition": "Stock ledger, available-to-promise quantities, reservations, and material-consumption events. A logical event must change the ledger once.",
-      "repositories": ["northstar/inventory-ledger", "northstar/inventory-api"],
+      "repositories": [
+        {"name": "northstar/inventory-ledger", "kind": "backend", "responsibility": "Stock event ledger and idempotent material-consumption writes", "signals": ["duplicate material issue", "available quantity", "event_id", "dedupe key"], "depends_on": [], "entrypoints": ["src/inventory/material_issue_consumer.py"], "verification": ["tests/test_material_issue_idempotency.py"], "reproduction_profile": "duplicate_material_issue"},
+        {"name": "northstar/inventory-api", "kind": "backend", "responsibility": "Availability and reservation API for downstream clients", "signals": ["ATP response", "reservation", "stock API"], "depends_on": ["northstar/inventory-ledger"]},
+        {"name": "northstar/inventory-ops-ui", "kind": "frontend", "responsibility": "Operator stock adjustments and discrepancy investigation", "signals": ["stock adjustment screen", "inventory discrepancy UI"], "depends_on": ["northstar/inventory-api"]},
+        {"name": "northstar/inventory-forecast-ui", "kind": "frontend", "responsibility": "Availability forecast and allocation views", "signals": ["forecast chart", "allocation view"], "depends_on": ["northstar/inventory-api"]}
+      ],
       "owners": ["Inventory Platform"],
       "prd_paths": ["prds/inventory-availability.md"],
       "decision_paths": ["decisions/adr-014-material-issue-idempotency.md"]
@@ -13,7 +18,12 @@
     {
       "id": "warehouse",
       "definition": "Lot-scoped picks, warehouse issue confirmation, and the event outbox that delivers material-issued events.",
-      "repositories": ["northstar/warehouse-execution", "northstar/warehouse-ui"],
+      "repositories": [
+        {"name": "northstar/warehouse-execution", "kind": "backend", "responsibility": "Pick confirmation, lot issue events, and outbox delivery", "signals": ["pick confirmation", "material-issued event", "outbox retry"], "depends_on": []},
+        {"name": "northstar/warehouse-api", "kind": "backend", "responsibility": "Warehouse task and lot availability API", "signals": ["pick task API", "lot availability endpoint"], "depends_on": ["northstar/warehouse-execution"], "entrypoints": ["src/api/pick_confirmation.py"], "verification": ["tests/test_pick_confirmation_api.py"]},
+        {"name": "northstar/warehouse-ui", "kind": "frontend", "responsibility": "Supervisor pick queues and exception review", "signals": ["pick queue", "warehouse exception screen"], "depends_on": ["northstar/warehouse-api"]},
+        {"name": "northstar/scanner-ui", "kind": "frontend", "responsibility": "Handheld scanner lot confirmation and offline retry", "signals": ["scanner retry", "lot scan", "offline confirmation"], "depends_on": ["northstar/warehouse-api"], "entrypoints": ["src/scanner/material-issue/"], "verification": ["tests/material-issue.spec.ts"], "reproduction_profile": "handheld_material_issue"}
+      ],
       "owners": ["Warehouse Execution"],
       "prd_paths": ["prds/warehouse-material-issue.md"],
       "decision_paths": ["decisions/adr-014-material-issue-idempotency.md"]
@@ -21,7 +31,12 @@
     {
       "id": "manufacturing",
       "definition": "Work-order start checks and consumption of lot-controlled raw materials at plants.",
-      "repositories": ["northstar/manufacturing-execution"],
+      "repositories": [
+        {"name": "northstar/manufacturing-execution", "kind": "backend", "responsibility": "Work-order start checks and material consumption", "signals": ["work order blocked", "MES start", "material consumption"], "depends_on": ["northstar/inventory-api"], "entrypoints": ["src/manufacturing/work_order_start.py"], "verification": ["tests/test_work_order_start.py"]},
+        {"name": "northstar/manufacturing-api", "kind": "backend", "responsibility": "Work-order and production status API", "signals": ["work-order API", "production status endpoint"], "depends_on": ["northstar/manufacturing-execution"]},
+        {"name": "northstar/mes-ui", "kind": "frontend", "responsibility": "Shop-floor work-order start and exception display", "signals": ["start button", "blocked work-order screen"], "depends_on": ["northstar/manufacturing-api"]},
+        {"name": "northstar/production-planning-ui", "kind": "frontend", "responsibility": "Planner schedule and material readiness view", "signals": ["production schedule", "material readiness view"], "depends_on": ["northstar/manufacturing-api"]}
+      ],
       "owners": ["Manufacturing Systems"],
       "prd_paths": ["prds/work-order-start.md"],
       "decision_paths": ["decisions/adr-014-material-issue-idempotency.md"]

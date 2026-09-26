@@ -28,7 +28,27 @@ Each request has a task list in LangGraph state. The dispatcher marks ready task
 
 ## Configure the team harness
 
-Start with `examples/agent_harness`. Fill `team/team-artifact.json` with domain IDs, definitions, repository names, and paths to relevant PRDs and technical decisions. Fill `feature-map.json` with feature names, domains, repositories, and ground truth paths. A feature may span several repositories. Optional `path_globs` map each repository to file patterns, while `owners`, `consumers`, and `tests` help release impact analysis. Changed files produce feature candidates with either a path match or a broader repository match; the response must treat these as candidates until code analysis confirms impact. The planner can only send repository-scoped tasks to repos selected through those artifacts. The context synthesizer loads selected PRDs and decisions before workers run. Prompt files in `prompts/` can be changed and evaluated by RRSI.
+Start with `examples/agent_harness`. Fill `team/team-artifact.json` with domain IDs, definitions, repository metadata, and paths to relevant PRDs and technical decisions. One domain can own many frontend and backend repos. Give each repo a `name`, `kind` (`frontend`, `backend`, `shared`, or `infrastructure`), `responsibility`, routing `signals`, and `depends_on` repo names. Optional `entrypoints`, `verification` test targets, and `reproduction_profile` tell delegated workers where to begin; the gateway owns the actual startup and isolation rules. String entries remain valid for older harnesses. A dependency describes a runtime or contract relationship; it does not automatically schedule a worker. The harness is validated when the graph starts: duplicate domains/features, malformed repositories, unknown repo dependencies, unknown feature repositories, and components outside a feature's repositories fail before a request runs.
+
+```json
+{
+  "domains": [{
+    "id": "warehouse",
+    "definition": "Lot picks and material issue",
+    "repositories": [
+      {"name": "acme/scanner-ui", "kind": "frontend", "responsibility": "lot scan and offline retry", "signals": ["scanner retry", "lot scan"], "depends_on": ["acme/warehouse-api"]},
+      {"name": "acme/warehouse-api", "kind": "backend", "responsibility": "pick confirmation API", "depends_on": ["acme/warehouse-execution"]},
+      {"name": "acme/warehouse-execution", "kind": "backend", "responsibility": "issue event publisher"}
+    ]
+  }]
+}
+```
+
+Fill `feature-map.json` with feature names, domains, repositories, and ground truth paths. A feature may span several domains and repos. Its optional `components` identify each repo's role, `path_globs`, and relevant tests. The older top-level `path_globs` format still works. Changed files produce feature candidates with a path or broader repository match; component roles and tests travel with those candidates. The response treats candidates as hypotheses until code analysis confirms impact.
+
+The planner receives the domain map, feature map, and indexed repository catalog. Selected domains determine allowed repos and documents; `focus_repositories` is computed from the actual repository-scoped tasks. A request can load context from inventory, warehouse, and manufacturing while assigning code work only to the inventory ledger. For a UI feature, it can schedule scanner UI and API workers in parallel, then schedule integration analysis after both finish. The context synthesizer sends selected PRDs, decisions, feature components, and repo topology to Codebot and reproduction workers. Prompt files in `prompts/` can be changed and evaluated by RRSI. Plans are capped at 32 tasks, including cross-repo release comparisons.
+
+`examples/supply_chain/harness` shows four repos per domain: two frontend and two backend repos in inventory, warehouse, and manufacturing. It includes a cross-domain operator workflow and a material-issue incident. The incident's trajectory requires inventory-ledger as the code focus and rejects unrelated UI repos; the release trajectory requires the three named backend comparisons. Add `required_focus_repositories` and `forbidden_focus_repositories` to trajectory cases to verify precise repo selection, alongside `tool_repositories`, parallel waves, and dependencies.
 
 The example harness is intentionally empty. Add your team's repository and feature mappings before asking OCA to investigate or change code.
 

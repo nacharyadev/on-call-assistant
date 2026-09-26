@@ -10,6 +10,11 @@
         "northstar/warehouse-execution": ["src/warehouse/material_issue*.py"],
         "northstar/manufacturing-execution": ["src/manufacturing/work_order_start*.py"]
       },
+      "components": [
+        {"repository": "northstar/inventory-ledger", "role": "event consumer and stock writer", "path_globs": ["src/inventory/material_issue*.py"], "tests": ["tests/test_material_issue_idempotency.py"]},
+        {"repository": "northstar/warehouse-execution", "role": "event producer and retry outbox", "path_globs": ["src/warehouse/material_issue*.py"], "tests": ["tests/test_pick_confirmation.py"]},
+        {"repository": "northstar/manufacturing-execution", "role": "downstream work-order guard", "path_globs": ["src/manufacturing/work_order_start*.py"], "tests": ["tests/test_work_order_start.py"]}
+      ],
       "owners": ["Inventory Platform", "Warehouse Execution", "Manufacturing Systems"],
       "consumers": ["Available-to-promise API", "Warehouse pick confirmation", "MES work-order start"],
       "tests": ["tests/test_material_issue_idempotency.py", "tests/test_pick_confirmation.py", "tests/test_work_order_start.py"]
@@ -39,6 +44,22 @@
       "owners": ["Warehouse Execution", "Manufacturing Systems"],
       "consumers": ["Recall reporting", "Quality hold checks"],
       "tests": ["tests/test_lot_traceability.py"]
+    },
+    {
+      "name": "operator material issue workflow",
+      "domain": "warehouse",
+      "repositories": ["northstar/scanner-ui", "northstar/warehouse-api", "northstar/warehouse-execution", "northstar/inventory-api", "northstar/mes-ui"],
+      "ground_truth": ["prds/warehouse-material-issue.md", "prds/work-order-start.md"],
+      "components": [
+        {"repository": "northstar/scanner-ui", "role": "lot scan and offline retry", "path_globs": ["src/scanner/material-issue/**"], "tests": ["tests/material-issue.spec.ts"]},
+        {"repository": "northstar/warehouse-api", "role": "pick confirmation API", "path_globs": ["src/api/pick-confirmation/**"], "tests": ["tests/test_pick_confirmation_api.py"]},
+        {"repository": "northstar/warehouse-execution", "role": "issue event publisher", "path_globs": ["src/warehouse/material_issue*.py"], "tests": ["tests/test_pick_confirmation.py"]},
+        {"repository": "northstar/inventory-api", "role": "updated availability response", "path_globs": ["src/api/availability*.py"], "tests": ["tests/test_available_to_promise.py"]},
+        {"repository": "northstar/mes-ui", "role": "work-order readiness display", "path_globs": ["src/work-orders/readiness/**"], "tests": ["tests/work-order-readiness.spec.ts"]}
+      ],
+      "owners": ["Warehouse Execution", "Inventory Platform", "Manufacturing Systems"],
+      "consumers": ["Handheld operators", "Warehouse supervisors", "Shop-floor operators"],
+      "tests": ["tests/e2e/material-issue-workflow.spec.ts"]
     }
   ]
 }

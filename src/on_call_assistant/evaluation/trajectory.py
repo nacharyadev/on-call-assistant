@@ -54,6 +54,11 @@ def evaluate_trajectory(output: dict[str, Any], expected: dict[str, Any]) -> dic
         check(f"domain:{domain}", domain in routing.get("domains", []))
     for repo in expected.get("required_repositories", []):
         check(f"repository:{repo}", repo in routing.get("repositories", []))
+    focus = set(routing.get("focus_repositories", []))
+    for repo in expected.get("required_focus_repositories", []):
+        check(f"focus_repository:{repo}", repo in focus)
+    for repo in expected.get("forbidden_focus_repositories", []):
+        check(f"forbidden_focus_repository:{repo}", repo not in focus)
 
     for tool, repositories in expected.get("tool_repositories", {}).items():
         actual = {task.get("arguments", {}).get("repository") for task in tasks

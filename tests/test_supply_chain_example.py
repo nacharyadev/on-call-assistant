@@ -5,12 +5,28 @@ from examples.supply_chain.fixtures import RecordedTools, ROOT
 from examples.supply_chain.mini_services import replay_material_issue
 from examples.supply_chain.run import run_case
 from examples.supply_chain.verifier import _states_tentative_impact
+from on_call_assistant.knowledge.catalog import build_repository_catalog
 
 
 CASES = {case["id"]: case for case in json.loads((ROOT / "cases.json").read_text(encoding="utf-8"))}
 
 
 class SupplyChainExampleTests(unittest.TestCase):
+    def test_harness_has_multiple_frontend_and_backend_repos_per_domain(self):
+        harness = ROOT / "harness"
+        artifact = json.loads((harness / "team" / "team-artifact.json").read_text())
+        features = json.loads((harness / "feature-map.json").read_text())
+        catalog = build_repository_catalog(artifact, features)
+        for domain in artifact["domains"]:
+            kinds = [catalog[entry["name"]]["kind"] for entry in domain["repositories"]]
+            self.assertGreaterEqual(kinds.count("frontend"), 2)
+            self.assertGreaterEqual(kinds.count("backend"), 2)
+        operator_flow = next(item for item in features["features"]
+                             if item["name"] == "operator material issue workflow")
+        self.assertEqual({catalog[component["repository"]]["kind"]
+                          for component in operator_flow["components"]}, {"frontend", "backend"})
+        self.assertEqual(len(operator_flow["components"]), 5)
+
     def test_release_impact_requires_tentative_language(self):
         self.assertTrue(_states_tentative_impact("This is a plausible risk, not a confirmed regression."))
         self.assertFalse(_states_tentative_impact("This is a proven regression."))
