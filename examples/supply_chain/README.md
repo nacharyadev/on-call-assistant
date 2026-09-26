@@ -31,6 +31,16 @@ export OPENAI_API_KEY=...
 
 This live-model run evaluates classification, planning, and synthesis against the recorded incident. It may fail the strict checks; those failures identify a concrete prompt, routing, or evidence problem. It still does not call production admin, Splunk, Jira, GitHub, Codebot, or browser services.
 
+For a local Ollama model with its OpenAI-compatible endpoint:
+
+```sh
+OPENAI_BASE_URL=http://127.0.0.1:11434/v1 OPENAI_API_KEY=ollama \
+  OCA_MODEL=qwen2.5:14b-instruct .venv/bin/python -m examples.supply_chain.run --live-model
+```
+
+The CLI prints each case's progress to stderr. Planner and answer validation can request up to two corrections from the model. A failed trajectory is reported as a failure; recorded tool results are never replaced with model-generated evidence.
+Model calls time out after 120 seconds by default; set `OCA_MODEL_TIMEOUT_SECONDS` to change that limit.
+
 ## Files
 
 | File | Purpose |

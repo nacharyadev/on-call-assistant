@@ -12,7 +12,17 @@ from .fixtures import FEATURE, INVENTORY_REPO, MANUFACTURING_REPO, WAREHOUSE_REP
 
 def verify_outcome(case: dict[str, Any], state: dict[str, Any], tools: RecordedTools) -> dict[str, Any]:
     expected = case["expected_outcome"]
-    outcomes = {item["task_id"]: item["outcome"] for item in state.get("results", [])}
+    tasks = {item["id"]: item for item in state.get("tasks", [])}
+    results = state.get("results", [])
+
+    def outcome_for(tool: str, repository: str | None = None) -> dict[str, Any]:
+        for item in results:
+            task = tasks.get(item.get("task_id"), {})
+            if item.get("tool") == tool and (repository is None or
+                                             task.get("arguments", {}).get("repository") == repository):
+                return item.get("outcome", {})
+        return {}
+
     answer = state.get("answer", {})
     checks: dict[str, bool] = {}
 
@@ -25,11 +35,11 @@ def verify_outcome(case: dict[str, Any], state: dict[str, Any], tools: RecordedT
                                     for item in answer.get("incomplete_tasks", [])))
 
     if case["id"] == "account-material-issue":
-        admin = outcomes.get("account", {}).get("data", {})
-        logs = outcomes.get("logs", {}).get("data", {})
-        replay = outcomes.get("repro", {}).get("data", {})
-        commits = outcomes.get("commits", {}).get("data", [])
-        issues = outcomes.get("history", {}).get("data", {}).get("issues", [])
+        admin = outcome_for("admin_lookup").get("data", {})
+        logs = outcome_for("splunk_search").get("data", {})
+        replay = outcome_for("reproduce_backend").get("data", {})
+        commits = outcome_for("github_recent_commits", INVENTORY_REPO).get("data", [])
+        issues = outcome_for("jira_search").get("data", {}).get("issues", [])
         observed = replay.get("observed", {})
         reference = replay.get("reference_event_id_dedupe", {})
         check("account_stock_discrepancy", admin.get("warehouse_physical_remaining") == expected["warehouse_physical_remaining"]
@@ -55,8 +65,8 @@ def verify_outcome(case: dict[str, Any], state: dict[str, Any], tools: RecordedT
                "request_id", "event_id")))
         codebot_calls = [args for name, args in tools.calls if name == "codebot"]
         check("codebot_received_evidence", len(codebot_calls) == 1
-              and {item["task_id"] for item in codebot_calls[0].get("prior_results", [])}
-              == {"logs", "history", "commits", "repro"}
+              and {item["tool"] for item in codebot_calls[0].get("prior_results", [])}
+              >= {"splunk_search", "jira_search", "github_recent_commits", "reproduce_backend"}
               and "decisions/adr-014-material-issue-idempotency.md"
               in codebot_calls[0].get("context", {}).get("documents", {}))
     elif case["id"] == "release-material-issue":

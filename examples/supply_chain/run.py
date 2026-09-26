@@ -4,6 +4,7 @@ from __future__ import annotations
 
 import argparse
 import json
+import sys
 from pathlib import Path
 from typing import Any
 
@@ -43,10 +44,15 @@ def main() -> None:
     for case in cases:
         if args.case != "all" and case["id"] != args.case:
             continue
+        if args.live_model:
+            print(f"Running {case['id']} with live model...", file=sys.stderr, flush=True)
         try:
             results.append(run_case(case, live_model=args.live_model))
         except Exception as exc:
             results.append({"id": case["id"], "passed": False, "error": str(exc)})
+        if args.live_model:
+            print(f"Finished {case['id']}: {'PASS' if results[-1]['passed'] else 'FAIL'}",
+                  file=sys.stderr, flush=True)
     if args.json:
         print(json.dumps(results, indent=2))
     else:

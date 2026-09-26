@@ -13,6 +13,7 @@ from ..knowledge.loader import _document, _load_json
 from .impact import impact_candidates
 from ..integrations.model import ModelPort, OpenAIModel
 from .planning import CAPABILITIES, DEFAULT_PROMPTS, _validate_plan
+from .response import validate_response
 from .safety import _redact
 from .state import OCAState, WorkerState
 from ..integrations.tools import HTTPTools, ToolPort
@@ -68,16 +69,29 @@ def create_graph(
                 "trace": [{"node": "input_classifier", "capability": capability}]}
 
     def planner(state: OCAState) -> dict[str, Any]:
-        result, tokens = model.complete_json(prompt("planner"), {
+        payload = {
             "request": state["request"], "capability": state["capability"],
             "team_artifact": artifact, "feature_map": features,
             "jira_creation_allowed": allow_jira_create,
-        })
-        plan = _validate_plan(result, artifact, features, allow_jira_create,
-                              state["request"].get("account_id"),
-                              state["request"].get("text") or state["request"].get("message", ""))
-        return {"plan": plan, "tasks": plan["tasks"], "policy_tokens": tokens,
-                "trace": [{"node": "planner", "task_count": len(plan["tasks"]), "repositories": plan["repositories"]}]}
+        }
+        tokens_used = 0
+        for attempt in range(3):
+            result, tokens = model.complete_json(prompt("planner"), payload)
+            tokens_used += tokens
+            try:
+                plan = _validate_plan(result, artifact, features, allow_jira_create,
+                                      state["request"].get("account_id"),
+                                      state["request"].get("text") or state["request"].get("message", ""),
+                                      state["capability"])
+                break
+            except ValueError as exc:
+                if attempt == 2:
+                    raise ValueError(f"planner failed validation after 3 attempts: {exc}") from exc
+                payload = {**payload, "previous_plan": result, "validation_error": str(exc),
+                           "repair_instruction": "Return a complete corrected plan using only the exact allowed tool names and argument keys in the system instructions."}
+        return {"plan": plan, "tasks": plan["tasks"], "policy_tokens": tokens_used,
+                "trace": [{"node": "planner", "task_count": len(plan["tasks"]),
+                           "repositories": plan["repositories"], "attempts": attempt + 1}]}
 
     def context_synthesizer(state: OCAState) -> dict[str, Any]:
         documents = {path: content for path in state["plan"]["document_paths"]
@@ -154,14 +168,26 @@ def create_graph(
             return {"answer": {"summary": state["blocked"], "findings": [], "evidence": [],
                                "remaining_work": [], "task_status": {}},
                     "trace": [{"node": "response_synthesizer", "status": "blocked"}]}
-        result, tokens = model.complete_json(prompt("response"), {
+        payload = {
             "request": state["request"], "capability": state["capability"],
             "plan": state["plan"], "context": state["context"],
             "feature_map": features if state["capability"] == "release_impact" else None,
             "impact_candidates": impact_candidates(state["tasks"], state.get("results", []), features)
             if state["capability"] == "release_impact" else [],
             "tasks": state["tasks"], "results": state.get("results", []),
-        })
+        }
+        tokens_used = 0
+        for attempt in range(3):
+            result, tokens = model.complete_json(prompt("response"), payload)
+            tokens_used += tokens
+            try:
+                result = validate_response(result, state["tasks"])
+                break
+            except ValueError as exc:
+                if attempt == 2:
+                    raise ValueError(f"response failed validation after 3 attempts: {exc}") from exc
+                payload = {**payload, "previous_response": result, "validation_error": str(exc),
+                           "repair_instruction": "Return only the requested answer fields, citing actual task IDs. Do not echo tasks or results."}
         result["task_status"] = {task["id"]: task["status"] for task in state["tasks"]}
         result["incomplete_tasks"] = [
             {"id": task["id"], "tool": task["tool"], "status": task["status"]}
@@ -172,7 +198,7 @@ def create_graph(
             "features": state["plan"]["feature_names"],
             "repositories": state["plan"]["repositories"],
         }
-        return {"answer": result, "policy_tokens": tokens,
+        return {"answer": result, "policy_tokens": tokens_used,
                 "trace": [{"node": "response_synthesizer", "status": "completed"}]}
 
     graph = StateGraph(OCAState)

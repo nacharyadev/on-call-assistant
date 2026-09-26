@@ -15,7 +15,7 @@ MAX_TASKS = 12
 
 def _validate_plan(raw: dict[str, Any], artifact: dict[str, Any], features: dict[str, Any],
                    allow_jira_create: bool, account_id: str | None = None,
-                   request_text: str = "") -> dict[str, Any]:
+                   request_text: str = "", capability: str | None = None) -> dict[str, Any]:
     domains = {item["id"]: item for item in artifact.get("domains", []) if isinstance(item, dict) and isinstance(item.get("id"), str)}
     feature_index = {item["name"]: item for item in features.get("features", []) if isinstance(item, dict) and isinstance(item.get("name"), str)}
     domain_ids = raw.get("domain_ids", [])
@@ -55,6 +55,10 @@ def _validate_plan(raw: dict[str, Any], artifact: dict[str, Any], features: dict
             raise ValueError("Jira creation is disabled by policy")
         if task["tool"] in ACCOUNT_TOOLS and not arguments.get("account_id"):
             raise ValueError(f"task {task_id} needs an account_id")
+        if task["tool"] == "jira_search" and not arguments.get("query"):
+            raise ValueError(f"task {task_id} needs a Jira query")
+        if task["tool"] == "github_compare" and not all(arguments.get(key) for key in ("base", "head")):
+            raise ValueError(f"task {task_id} needs base and head refs")
         if (task["tool"] in ACCOUNT_TOOLS and arguments["account_id"] != account_id
                 and str(arguments["account_id"]) not in request_text):
             raise ValueError(f"task {task_id} uses an account not present in the request")
@@ -77,9 +81,39 @@ def _validate_plan(raw: dict[str, Any], artifact: dict[str, Any], features: dict
         if not ready:
             raise ValueError("task dependency cycle")
         pending = {task_id: dependencies - ready for task_id, dependencies in pending.items() if task_id not in ready}
+    if capability:
+        _validate_workflow(normalized, repositories, capability, request_text, account_id)
     return {"domain_ids": domain_ids, "feature_names": feature_names,
             "repositories": sorted(repositories), "document_paths": sorted(documents),
             "tasks": normalized, "rationale": str(raw.get("rationale", ""))[:2000]}
+
+
+def _validate_workflow(tasks: list[dict[str, Any]], repositories: set[str],
+                       capability: str, request_text: str, account_id: str | None) -> None:
+    """Reject plans that skip an explicitly requested engineering step."""
+    by_tool: dict[str, list[dict[str, Any]]] = {tool: [] for tool in TOOLS}
+    for task in tasks:
+        by_tool[task["tool"]].append(task)
+    if account_id:
+        for tool in ACCOUNT_TOOLS:
+            matches = [task for task in by_tool[tool] if task["arguments"].get("account_id") == account_id]
+            if len(matches) > 1:
+                raise ValueError(f"use one {tool} task per account; do not repeat it for each repository")
+    if capability == "bug_analysis":
+        if "reproduc" in request_text.lower() and not (by_tool["reproduce_backend"] or by_tool["reproduce_browser"]):
+            raise ValueError("request asks for reproduction; add a reproduce_backend or reproduce_browser task")
+        if re.search(r"\b(?:code changes?|commits?|regression)\b", request_text, re.I) and not by_tool["codebot"]:
+            raise ValueError("code-change investigation needs a codebot analysis task")
+    if capability == "release_impact":
+        compared = {task["arguments"].get("repository") for task in by_tool["github_compare"]}
+        named = {repo for repo in repositories if repo in request_text or repo.split("/")[-1] in request_text}
+        missing = named - compared
+        if missing:
+            raise ValueError(f"release impact needs github_compare for named repositories: {', '.join(sorted(missing))}")
+        if not by_tool["github_compare"]:
+            raise ValueError("release impact needs github_compare tasks")
+        if not by_tool["codebot"]:
+            raise ValueError("release impact needs a codebot analysis task")
 
 
 DEFAULT_PROMPTS = {

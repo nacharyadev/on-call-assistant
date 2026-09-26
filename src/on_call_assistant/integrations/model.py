@@ -13,7 +13,9 @@ class OpenAIModel:
         from openai import OpenAI
 
         self.model = model or os.getenv("OCA_MODEL", "gpt-4.1-mini")
-        self.client = OpenAI(base_url=os.getenv("OPENAI_BASE_URL") or None)
+        self.client = OpenAI(base_url=os.getenv("OPENAI_BASE_URL") or None,
+                             timeout=float(os.getenv("OCA_MODEL_TIMEOUT_SECONDS", "120")),
+                             max_retries=0)
 
     def complete_json(self, system: str, payload: dict[str, Any]) -> tuple[dict[str, Any], int]:
         result = self.client.chat.completions.create(

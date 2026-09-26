@@ -13,6 +13,7 @@ from fastapi.testclient import TestClient
 from on_call_assistant.agent import create_graph
 from on_call_assistant.agent.impact import impact_candidates
 from on_call_assistant.agent.planning import _validate_plan
+from on_call_assistant.agent.response import validate_response
 from on_call_assistant.api.service import create_app
 from on_call_assistant.evaluation.trajectory import evaluate_trajectory
 from on_call_assistant.integrations.tools import HTTPTools
@@ -76,6 +77,47 @@ class OcaTests(unittest.TestCase):
         self.assertEqual(output["results"][0]["outcome"]["data"]["token"], "[REDACTED]")
         self.assertEqual(output["answer"]["task_status"]["analysis"], "completed")
         self.assertEqual(output["answer"]["routing"]["repositories"], ["org/api", "org/web"])
+
+    def test_planner_repairs_invalid_model_tool_without_running_it(self):
+        class RepairingModel(FakeModel):
+            def complete_json(self, system, payload):
+                if "team_artifact" in payload and "validation_error" not in payload:
+                    self.calls.append(payload)
+                    invalid = {**self.plan, "tasks": [{"id": "bad", "tool": "git", "arguments": {},
+                                                        "depends_on": []}]}
+                    return invalid, 7
+                return super().complete_json(system, payload)
+
+        model, tools = RepairingModel(self.plan()), FakeTools()
+        output = create_graph(self.root, model=model, tools=tools).invoke(
+            {"request": {"text": "Checkout fails"}},
+            config={"configurable": {"thread_id": "repair"}})
+        self.assertEqual(output["policy_tokens"], 25)
+        self.assertEqual(next(item for item in output["trace"] if item["node"] == "planner")["attempts"], 2)
+        self.assertIn("invalid task tool", model.calls[2]["validation_error"])
+        self.assertNotIn("git", [name for name, _ in tools.calls])
+
+    def test_workflow_validator_rejects_repeated_lookups_and_skipped_reproduction(self):
+        artifact = json.loads((self.root / "team" / "team-artifact.json").read_text())
+        features = json.loads((self.root / "feature-map.json").read_text())
+        plan = {"domain_ids": ["checkout"], "feature_names": [], "tasks": [
+            {"id": "first", "tool": "admin_lookup", "arguments": {"account_id": "acct-123"}, "depends_on": []},
+            {"id": "second", "tool": "admin_lookup", "arguments": {"account_id": "acct-123"}, "depends_on": []},
+        ]}
+        with self.assertRaisesRegex(ValueError, "one admin_lookup"):
+            _validate_plan(plan, artifact, features, False, "acct-123", "Reproduce acct-123 issue", "bug_analysis")
+        plan["tasks"].pop()
+        with self.assertRaisesRegex(ValueError, "add a reproduce_backend"):
+            _validate_plan(plan, artifact, features, False, "acct-123", "Reproduce acct-123 issue", "bug_analysis")
+
+    def test_response_rejects_unsupported_results_and_unknown_evidence(self):
+        answer = {"summary": "Investigated", "findings": [], "evidence": [], "remaining_work": []}
+        tasks = [{"id": "lookup"}]
+        self.assertEqual(validate_response(answer, tasks), answer)
+        with self.assertRaisesRegex(ValueError, "unsupported fields"):
+            validate_response({**answer, "results": [{"status": "invented"}]}, tasks)
+        with self.assertRaisesRegex(ValueError, "unknown task ID"):
+            validate_response({**answer, "evidence": [{"task_id": "imaginary"}]}, tasks)
 
     def test_failed_dependency_blocks_followup(self):
         class FailingTools(FakeTools):
