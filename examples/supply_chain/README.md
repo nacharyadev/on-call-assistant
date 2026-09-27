@@ -10,6 +10,8 @@ The example makes OCA retrieve an account snapshot, exception logs, a related Ji
 
 The companion release request compares `v3.7.0` and `v3.8.0` across the inventory ledger, warehouse execution, and manufacturing execution repositories. The feature map connects changed files to possible owners, consumers, and tests. These are impact candidates, not proof of a regression.
 
+The feature map also documents the operator's product journey: the persona enters through a handheld material-issue screen, scans and confirms an assigned pick, and reaches MES readiness. Each step maps to a frontend route, API call, backend repository, and emitted or consumed event. These routes and identifiers are illustrative fixture data; teams should replace them with verified screen names, routes, handlers, and event contracts. Screenshot metadata may include a harness-relative image path and descriptive alt text, but OCA currently validates and passes those references through as text; it does not inspect screenshot pixels.
+
 ## Run
 
 From the repository root:

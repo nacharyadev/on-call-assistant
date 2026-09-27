@@ -31,7 +31,7 @@ def create_graph(
     root = Path(harness_dir).resolve()
     artifact = _load_json(root, "team/team-artifact.json")
     features = _load_json(root, "feature-map.json")
-    repository_catalog = build_repository_catalog(artifact, features)
+    repository_catalog = build_repository_catalog(artifact, features, root)
     model = model or create_model()
     tools = tools or HTTPTools()
 
@@ -104,6 +104,7 @@ def create_graph(
         selected_features = [item for item in features.get("features", [])
                              if item.get("name") in state["plan"]["feature_names"]]
         context = {"domains": selected_domains, "features": selected_features,
+                   "vocabulary": state["plan"]["vocabulary"],
                    "repositories": state["plan"]["repositories"],
                    "focus_repositories": state["plan"]["focus_repositories"],
                    "repository_catalog": {name: repository_catalog[name] for name in state["plan"]["repositories"]},

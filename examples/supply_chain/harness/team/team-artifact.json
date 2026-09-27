@@ -48,5 +48,46 @@
     "jira": "Prior incidents and planned work",
     "git": "Recent commits and release diffs",
     "reproducer": "Isolated backend replay of the material-issued event"
-  }
+  },
+  "vocabulary": [
+    {
+      "term": "material issue",
+      "definition": "Confirmation that stock physically left the warehouse; its logical event must reduce inventory availability once.",
+      "aliases": ["goods issue", "material consumption"],
+      "domain_ids": ["warehouse", "inventory", "manufacturing"],
+      "feature_names": ["material issue and production consumption", "operator material issue workflow"],
+      "repositories": ["northstar/warehouse-execution", "northstar/inventory-ledger", "northstar/manufacturing-execution"],
+      "code_symbols": ["MaterialIssued", "event_id", "material_issue_consumer"],
+      "source_paths": ["decisions/adr-014-material-issue-idempotency.md", "prds/warehouse-material-issue.md"]
+    },
+    {
+      "term": "logical event identity",
+      "definition": "Stable identity of one business event across retries; distinct from each delivery attempt and from an optional request correlation ID.",
+      "aliases": ["event ID", "event key"],
+      "domain_ids": ["warehouse", "inventory"],
+      "repositories": ["northstar/warehouse-execution", "northstar/inventory-ledger"],
+      "code_symbols": ["event_id", "delivery_id", "request_id"],
+      "source_paths": ["decisions/adr-014-material-issue-idempotency.md"]
+    },
+    {
+      "term": "available to promise",
+      "definition": "Quantity currently available for new reservations after committed issues and existing reservations are accounted for.",
+      "aliases": ["ATP", "available inventory"],
+      "domain_ids": ["inventory"],
+      "feature_names": ["available to promise"],
+      "repositories": ["northstar/inventory-ledger", "northstar/inventory-api"],
+      "code_symbols": ["available_quantity", "availability"],
+      "source_paths": ["prds/inventory-availability.md"]
+    },
+    {
+      "term": "work-order start",
+      "definition": "MES transition that begins production only after required lot-controlled materials pass the availability check.",
+      "aliases": ["start work order", "MES start"],
+      "domain_ids": ["manufacturing"],
+      "feature_names": ["material issue and production consumption", "operator material issue workflow"],
+      "repositories": ["northstar/manufacturing-execution", "northstar/mes-ui"],
+      "code_symbols": ["work_order_start", "INSUFFICIENT_MATERIAL"],
+      "source_paths": ["prds/work-order-start.md"]
+    }
+  ]
 }

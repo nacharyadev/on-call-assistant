@@ -52,6 +52,10 @@ def evaluate_trajectory(output: dict[str, Any], expected: dict[str, Any]) -> dic
         check(f"forbidden_tool:{tool}", tool not in observed_tools)
     for domain in expected.get("required_domains", []):
         check(f"domain:{domain}", domain in routing.get("domains", []))
+    for feature in expected.get("required_features", []):
+        check(f"feature:{feature}", feature in routing.get("features", []))
+    if "exact_features" in expected:
+        check("exact_features", set(routing.get("features", [])) == set(expected["exact_features"]))
     for repo in expected.get("required_repositories", []):
         check(f"repository:{repo}", repo in routing.get("repositories", []))
     focus = set(routing.get("focus_repositories", []))
@@ -59,6 +63,11 @@ def evaluate_trajectory(output: dict[str, Any], expected: dict[str, Any]) -> dic
         check(f"focus_repository:{repo}", repo in focus)
     for repo in expected.get("forbidden_focus_repositories", []):
         check(f"forbidden_focus_repository:{repo}", repo not in focus)
+    if "exact_focus_repositories" in expected:
+        check("exact_focus_repositories", focus == set(expected["exact_focus_repositories"]))
+
+    if "exact_tools" in expected:
+        check("exact_tools", Counter(observed_tools) == Counter(expected["exact_tools"]))
 
     for tool, repositories in expected.get("tool_repositories", {}).items():
         actual = {task.get("arguments", {}).get("repository") for task in tasks
@@ -74,6 +83,11 @@ def evaluate_trajectory(output: dict[str, Any], expected: dict[str, Any]) -> dic
         check(f"parallel_group:{index}", any(
             not (Counter(group) - Counter(task_by_id[task_id]["tool"]
                                           for task_id in wave if task_id in task_by_id))
+            for wave in dispatch_waves))
+    for index, group in enumerate(expected.get("exact_parallel_tools", [])):
+        check(f"exact_parallel_group:{index}", any(
+            Counter(group) == Counter(task_by_id[task_id]["tool"]
+                                      for task_id in wave if task_id in task_by_id)
             for wave in dispatch_waves))
 
     for relation in expected.get("dependencies", []):

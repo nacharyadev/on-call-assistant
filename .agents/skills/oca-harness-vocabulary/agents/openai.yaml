@@ -1,0 +1,3 @@
+interface:
+  display_name: "OCA Domain Vocabulary"
+  short_description: "Connect business terms to code symbols"

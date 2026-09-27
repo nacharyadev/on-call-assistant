@@ -18,7 +18,7 @@ Create or update `team/team-artifact.json` in the team's harness. Use `examples/
 
 ## Required structure
 
-The root JSON object contains `domains` (array) and may contain `name`, `snapshot`, and `tools`. Every domain has a unique `id`, a `definition`, and `repositories`. A structured repository has `name` and may include `kind` (`frontend`, `backend`, `shared`, or `infrastructure`), `responsibility`, `signals` (string array), `depends_on` (repo-name array), `entrypoints`, `verification`, and `reproduction_profile`. Domain entries may also include `owners`, `prd_paths`, and `decision_paths`.
+The root JSON object contains `domains` (array) and may contain `name`, `snapshot`, `tools`, and `vocabulary`. Every domain has a unique `id`, a `definition`, and `repositories`. A structured repository has `name` and may include `kind` (`frontend`, `backend`, `shared`, or `infrastructure`), `responsibility`, `signals` (string array), `depends_on` (repo-name array), `entrypoints`, `verification`, and `reproduction_profile`. Domain entries may also include `owners`, `prd_paths`, and `decision_paths`. Use the `oca-harness-vocabulary` skill to prepare `vocabulary` terms, aliases, and code symbols.
 
 Example:
 
@@ -42,6 +42,6 @@ Example:
 }
 ```
 
-Before finishing, check that domain IDs and repository names are unique within each domain, every dependency names a repo in the catalog, every repo has a valid `kind` when present, and each document path exists. OCA validates repository and feature references when it creates the graph; document links should be checked when authoring because missing files otherwise become empty context.
+Before finishing, check that domain IDs and repository names are unique within each domain, every dependency names a repo in the catalog, every repo has a valid `kind` when present, and each document path exists. For repos repeated across domains, keep single-value metadata identical; OCA merges `signals`, `depends_on`, `entrypoints`, and `verification`, and rejects conflicting scalar metadata. OCA validates repository and feature references when it creates the graph; document links should be checked when authoring because missing files otherwise become empty context.
 
 Do not include credentials, customer records, incident payloads, or secret URLs in the artifact. Use stable service descriptions and route-specific signals. Summarize the changes and call out any unverified mappings.
