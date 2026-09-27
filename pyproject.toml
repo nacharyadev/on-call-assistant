@@ -24,10 +24,6 @@ serve = ["uvicorn>=0.30,<1"]
 on-call-assistant = "on_call_assistant.cli:main"
 on-call-evolve = "on_call_assistant.evolution.cli:main"
 on-call-trajectory = "on_call_assistant.evaluation.cli:main"
-# Compatibility during the parallel-session migration.
-rrsi-oncall = "on_call_assistant.evolution.cli:main"
-rrsi-oca = "on_call_assistant.cli:main"
-rrsi-oca-trajectory = "on_call_assistant.evaluation.cli:main"
 
 [tool.setuptools.packages.find]
 where = ["src"]

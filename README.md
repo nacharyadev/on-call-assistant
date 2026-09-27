@@ -73,5 +73,3 @@ PYTHONPATH=src .venv/bin/python -m on_call_assistant.evolution.cli examples/demo
 ```
 
 The synthetic evolution score validates the plumbing, not the real assistant. Real validation needs your team artifacts, tool gateways, reproducible task environments, and independent verifiers for the six capabilities.
-
-Use the `on_call_assistant` package for new imports. [Migration notes](docs/migration.md) list compatibility aliases for older integrations.
