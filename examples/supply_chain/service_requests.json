@@ -1,0 +1,31 @@
+{
+  "incident": {
+    "text": "For account acct-aurora-07, warehouse WH-CLE reports 80 units of RM-AL-6061 lot LOT-77 still physically present, but inventory availability is zero and work order WO-4822 will not start. Investigate, reproduce, check older incidents and recent code changes.",
+    "account_id": "acct-aurora-07",
+    "capability": "bug_analysis"
+  },
+  "bug_fix": {
+    "text": "Fix the duplicate MaterialIssued event handling in northstar/inventory-ledger. Reproduce the scanner retry defect, change deduplication to stable event_id, and add an idempotency regression test.",
+    "capability": "bug_fix"
+  },
+  "feature": {
+    "text": "Implement an operator material issue confirmation flow from Assigned picks in northstar/scanner-ui through northstar/warehouse-api and northstar/warehouse-execution to inventory availability in northstar/inventory-ledger and northstar/inventory-api, then show readiness in northstar/mes-ui. Check Jira history and create a tracking ticket for this new feature. Plan frontend and backend workers in parallel, then integrate their results.",
+    "capability": "feature"
+  },
+  "pr_review": {
+    "text": "Review PR 42 in northstar/inventory-ledger for duplicate MaterialIssued delivery handling, idempotency, failure behavior, and downstream work-order impact. Inspect the changed files before code analysis.",
+    "capability": "pr_review"
+  },
+  "release_impact": {
+    "text": "Compare v3.7.0 with v3.8.0 across northstar/inventory-ledger, northstar/warehouse-execution, and northstar/manufacturing-execution. Identify candidate impact on material issue, inventory availability, and work-order start, including owners and regression tests.",
+    "capability": "release_impact"
+  },
+  "tech_debt": {
+    "text": "Investigate stale legacy material issue deduplication paths and dead retry handling in northstar/inventory-ledger and northstar/warehouse-execution. Propose safe removal with affected callers and regression checks.",
+    "capability": "tech_debt"
+  },
+  "ux_reproduction": {
+    "text": "Reproduce the handheld operator path in a browser: Assigned picks to Pick confirmation to Issue confirmation, then Work-order readiness. Trace the screens through northstar/scanner-ui, northstar/warehouse-api, northstar/inventory-api, and northstar/mes-ui. Investigate why readiness is stale after confirming a material issue.",
+    "capability": "bug_analysis"
+  }
+}

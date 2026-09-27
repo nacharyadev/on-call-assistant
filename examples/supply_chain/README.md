@@ -29,6 +29,37 @@ Open `runs/supply-chain-trajectory.html` to compare each case's JSON expectation
 
 The default run uses a deterministic fixture model and recorded tools. It exercises the actual LangGraph, parallel workers, task dependencies, checkpoints, context loading, and response path. It checks both the trajectory and an independent outcome verifier. The verifier checks the replayed stock values, duplicate event deliveries, MES response, source evidence, release path matches, and the reported Codebot stub. Tests also remove a log delivery or a changed file and confirm that the outcome check fails even when the trajectory still passes.
 
+## HTTP service with delayed mock tools
+
+The local demo service uses the configured live model and simulated responses for every worker tool. It uses the recorded account, log, Jira, commit, and release data where available. Jira creation, PR files, browser reproduction, and Codebot also return marked mock responses. Codebot proposes text only; it does not patch a repository. The default delays range from 0.6 to 2 seconds per tool and allow independent workers to overlap.
+
+Start it from the repository root after creating `runs/oca-api-token` (the token file is ignored by Git):
+
+```sh
+.venv/bin/uvicorn examples.supply_chain.mock_service:create_mock_app --factory --host 127.0.0.1 --port 8001
+```
+
+Set `OCA_MOCK_DELAY_SCALE=0` for instant mocks or another value from 0 to 10 to change every delay. Exact request bodies for all six capabilities and browser reproduction are in [`service_requests.json`](service_requests.json). Submit one and watch task statuses with:
+
+```sh
+.venv/bin/python -m examples.supply_chain.service_client incident
+.venv/bin/python -m examples.supply_chain.service_client release_impact
+.venv/bin/python -m examples.supply_chain.service_client feature
+```
+
+The following `curl` works from any directory on this machine. Replace `incident` with `bug_fix`, `feature`, `pr_review`, `release_impact`, `tech_debt`, or `ux_reproduction` to send that exact JSON body:
+
+```sh
+jq -c '.incident' "$HOME/dev/rrsi-oncall/examples/supply_chain/service_requests.json" | \
+  curl -sS http://127.0.0.1:8001/requests \
+    -H "Authorization: Bearer $(cat "$HOME/dev/rrsi-oncall/runs/oca-api-token")" \
+    -H 'Content-Type: application/json' --data-binary @-
+```
+
+Poll `GET /requests/{request_id}` with the same bearer header. The token path must be absolute or rooted at `$HOME` if your shell is in another repository.
+
+Use `--port 8000` to submit the same payload to the service with real gateway adapters. Until those gateways and repository names are replaced with real ones, their tool calls will be unavailable or return upstream 404s. Neither HTTP service automatically runs RRSI; use `--live-model` above for the recorded trajectory and outcome evaluation, or run the separate RRSI experiment configuration in `docs/evolution.md`.
+
 To test the same requests with Anthropic while retaining recorded tools, put your key in the ignored `.env` file at the repository root (copy `.env.example` if needed):
 
 ```sh

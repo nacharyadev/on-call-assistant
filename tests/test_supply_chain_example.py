@@ -4,6 +4,7 @@ import unittest
 from examples.supply_chain.fixtures import RecordedTools, ROOT
 from examples.supply_chain.mini_services import replay_material_issue
 from examples.supply_chain.run import run_case
+from examples.supply_chain.simulated_tools import DEFAULT_DELAYS, SimulatedTools
 from examples.supply_chain.verifier import _states_tentative_impact
 from on_call_assistant.knowledge.catalog import build_repository_catalog
 
@@ -12,6 +13,29 @@ CASES = {case["id"]: case for case in json.loads((ROOT / "cases.json").read_text
 
 
 class SupplyChainExampleTests(unittest.TestCase):
+    def test_delayed_demo_tools_cover_every_worker_contract(self):
+        delays = []
+        tools = SimulatedTools(delay_scale=2, sleep=delays.append)
+        arguments = {
+            "admin_lookup": {"account_id": "acct-aurora-07"},
+            "splunk_search": {"account_id": "acct-aurora-07", "query": "material issue"},
+            "jira_search": {"query": "material issue"},
+            "jira_create": {"summary": "Track material issue workflow"},
+            "github_recent_commits": {"repository": "northstar/inventory-ledger"},
+            "github_pr_files": {"repository": "northstar/inventory-ledger", "pr_number": 42},
+            "github_compare": {"repository": "northstar/inventory-ledger", "base": "v3.7.0", "head": "v3.8.0"},
+            "reproduce_backend": {"repository": "northstar/inventory-ledger"},
+            "reproduce_browser": {"repository": "northstar/scanner-ui"},
+            "codebot": {"repository": "northstar/inventory-ledger", "task": "Review dedupe"},
+        }
+        results = {name: tools.execute(name, args) for name, args in arguments.items()}
+        self.assertEqual(set(results), set(DEFAULT_DELAYS))
+        self.assertTrue(all(item["status"] == "ok" and item["simulated"] for item in results.values()))
+        self.assertEqual(delays, [DEFAULT_DELAYS[name] * 2 for name in arguments])
+        self.assertFalse(results["codebot"]["data"]["applied"])
+        self.assertFalse(results["jira_create"]["data"]["created"])
+        self.assertEqual(len(tools.calls), len(DEFAULT_DELAYS))
+
     def test_harness_has_multiple_frontend_and_backend_repos_per_domain(self):
         harness = ROOT / "harness"
         artifact = json.loads((harness / "team" / "team-artifact.json").read_text())
