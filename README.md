@@ -71,21 +71,58 @@ Open the [architecture view](architecture.html) for the module and workflow over
 
 ### Bootstrap a harness from local repositories
 
-The repo-local `$oca-harness-bootstrap` skill can build a fresh harness or incrementally refresh an existing one from a workspace containing multiple checked-out repositories. Invoke it from an agent session in this repository:
+The repo-local [$oca-harness-bootstrap skill](.agents/skills/oca-harness-bootstrap/SKILL.md) builds a fresh harness or incrementally refreshes an existing one from multiple locally checked-out Git repositories. Start an agent session in this repository and give the skill the parent workspace, harness destination, and optional domain scope.
+
+Generate a fresh harness for every discovered domain:
 
 ```text
 Use $oca-harness-bootstrap to create a fresh harness at ./team-harness
 from every Git repository under /path/to/team-workspace.
 ```
 
-For a scoped refresh:
+Generate a fresh harness for one domain when its repositories are known:
 
 ```text
-Use $oca-harness-bootstrap to update the inventory domain in ./team-harness
-from the repositories under /path/to/team-workspace.
+Use $oca-harness-bootstrap to create a fresh inventory-domain harness at
+./team-harness from these repositories:
+- /path/to/team-workspace/inventory-ledger
+- /path/to/team-workspace/inventory-api
+- /path/to/team-workspace/inventory-ui
+Include verified cross-repository dependencies and report missing consumers.
 ```
 
-The skill records repository commits and scan deltas under the harness's ignored `.oca/` directory, updates source-grounded team, feature, vocabulary, context, and trajectory artifacts, and writes a versioned `discovery-report.json`. See the [bootstrap skill](.agents/skills/oca-harness-bootstrap/SKILL.md) for its evidence and incremental-update rules.
+After changes merge, refresh the complete harness:
+
+```text
+Use $oca-harness-bootstrap to incrementally update every domain in
+./team-harness from Git repositories under /path/to/team-workspace.
+```
+
+Refresh one or more domains while preserving unrelated mappings:
+
+```text
+Use $oca-harness-bootstrap to incrementally update the inventory, warehouse,
+and manufacturing domains in ./team-harness from repositories under
+/path/to/team-workspace.
+```
+
+The generated harness contains:
+
+```text
+team-harness/
+  team/team-artifact.json     Domains, repositories, ownership, dependencies
+  feature-map.json            Product flows and frontend/backend code paths
+  discovery-report.json       Versioned source evidence and unresolved gaps
+  trajectory_cases.json       Expected paved paths for agent evaluation
+  prompts/                    Generic classifier, planner, and response policy
+  prds/ decisions/ runbooks/  Concise source-grounded context
+```
+
+The skill scans CODEOWNERS, manifests, routes, API and event contracts, feature flags, tests, and engineering documents. It stores local repository paths, commit baselines, and scan deltas under the harness's ignored `.oca/` directory. Durable mappings in `discovery-report.json` use repository names, commits, and source-relative paths so the harness does not depend on one developer's checkout location.
+
+Incremental runs compare the current repository commits with the last successfully validated baseline. The baseline advances only after structural and relevant trajectory checks pass. All-domain and selected-domain baselines are separate, and the skill refuses to advance from dirty repositories or when commits changed after inspection. This lets a scheduled job or a developer rerun the same skill after merges without silently marking unprocessed code as current.
+
+Directory proximity is not treated as domain ownership. For a new selected domain, provide explicit repository paths when source and architecture material cannot establish the boundary. The skill records uncertain mappings as provisional instead of inventing repository relationships, owners, routes, or tests. Detailed evidence and update rules are in the [bootstrap contract](.agents/skills/oca-harness-bootstrap/references/bootstrap-contract.md).
 
 ## Codebase
 
