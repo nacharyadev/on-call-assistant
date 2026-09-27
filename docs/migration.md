@@ -1,6 +1,6 @@
-# Parallel-session migration
+# Package migration
 
-The project directory is now `~/dev/on-call-assistant`. `~/dev/rrsi-oncall` is a symlink to it while the other session finishes migrating. New edits should target the new directory and the `on_call_assistant` package. The `rrsi_oncall` package contains compatibility imports only.
+Use the `on_call_assistant` package for new imports. The `rrsi_oncall` package contains compatibility imports for older integrations. The repository can be checked out at any filesystem path.
 
 | Previous location | New location |
 | --- | --- |
@@ -14,4 +14,4 @@ The project directory is now `~/dev/on-call-assistant`. `~/dev/rrsi-oncall` is a
 | `examples/oca_harness` | `examples/agent_harness` |
 | `examples/oca_trajectory_cases.json` | `examples/trajectory_cases.json` |
 
-The new console scripts are `on-call-assistant`, `on-call-trajectory`, and `on-call-evolve`. The previous `rrsi-*` script names still point to the new implementations. After all sessions and deployments use the new imports and paths, the compatibility wrappers and symlinks can be removed in a separate change.
+The new console scripts are `on-call-assistant`, `on-call-trajectory`, and `on-call-evolve`. The previous `rrsi-*` script names still point to the new implementations. Remove the compatibility wrappers only after older integrations have migrated.

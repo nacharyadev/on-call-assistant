@@ -47,16 +47,23 @@ Set `OCA_MOCK_DELAY_SCALE=0` for instant mocks or another value from 0 to 10 to 
 .venv/bin/python -m examples.supply_chain.service_client feature
 ```
 
-The following `curl` works from any directory on this machine. Replace `incident` with `bug_fix`, `feature`, `pr_review`, `release_impact`, `tech_debt`, or `ux_reproduction` to send that exact JSON body:
+In a terminal at the repository root, replace `incident` with `bug_fix`, `feature`, `pr_review`, `release_impact`, `tech_debt`, or `ux_reproduction` to send that exact JSON body:
 
 ```sh
-jq -c '.incident' "$HOME/dev/rrsi-oncall/examples/supply_chain/service_requests.json" | \
+jq -c '.incident' examples/supply_chain/service_requests.json | \
   curl -sS http://127.0.0.1:8001/requests \
-    -H "Authorization: Bearer $(cat "$HOME/dev/rrsi-oncall/runs/oca-api-token")" \
+    -H "Authorization: Bearer $(cat runs/oca-api-token)" \
     -H 'Content-Type: application/json' --data-binary @-
 ```
 
-Poll `GET /requests/{request_id}` with the same bearer header. The token path must be absolute or rooted at `$HOME` if your shell is in another repository.
+Run `cd /path/to/your/clone` in each new terminal before using these relative paths. Replace `REQUEST_ID` with the ID returned by `POST` to read progress and the final answer:
+
+```sh
+curl -sS http://127.0.0.1:8001/requests/REQUEST_ID \
+  -H "Authorization: Bearer $(cat runs/oca-api-token)"
+```
+
+If you run `curl` from another directory, set `OCA_ROOT` to the absolute path of your clone and use `$OCA_ROOT/runs/oca-api-token` and `$OCA_ROOT/examples/supply_chain/service_requests.json`.
 
 Use `--port 8000` to submit the same payload to the service with real gateway adapters. Until those gateways and repository names are replaced with real ones, their tool calls will be unavailable or return upstream 404s. Neither HTTP service automatically runs RRSI; use `--live-model` above for the recorded trajectory and outcome evaluation, or run the separate RRSI experiment configuration in `docs/evolution.md`.
 

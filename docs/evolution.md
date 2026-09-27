@@ -18,7 +18,7 @@ The demo deliberately has simple deterministic tasks. It validates the plumbing 
 Run RRSI as a separate experiment process. It loads a snapshot of the on-call app's graph and a versioned harness for each trial; the production request path does not start the evolution loop. The app owns request execution and trace collection. RRSI owns task sampling, candidate edits, verification, and selection. Promotion of a selected harness is a separate review and deployment step.
 
 ```sh
-cd ~/dev/on-call-assistant
+# From the repository root
 python3 -m venv .venv
 .venv/bin/python -m pip install -e .
 # Replace the ANTHROPIC_API_KEY placeholder in .env first.
