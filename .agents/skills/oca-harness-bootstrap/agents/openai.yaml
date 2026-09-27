@@ -1,0 +1,4 @@
+interface:
+  display_name: "OCA Harness Bootstrap"
+  short_description: "Build or refresh an OCA harness from local repositories"
+  default_prompt: "Use $oca-harness-bootstrap to create or incrementally update an OCA harness from local repositories with source evidence."

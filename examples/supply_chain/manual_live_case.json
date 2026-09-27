@@ -1,0 +1,63 @@
+{
+  "id": "manual-material-shortage-regression",
+  "capability": "bug_analysis",
+  "input": {
+    "text": "For account acct-aurora-07, investigate why warehouse WH-CLE has physical stock but work order WO-4822 cannot start. Check logs, older incidents, recent changes, and reproduce the failure.",
+    "account_id": "acct-aurora-07"
+  },
+  "expected_trajectory": {
+    "capability": "bug_analysis",
+    "required_domains": ["inventory", "warehouse", "manufacturing"],
+    "required_repositories": [
+      "northstar/inventory-ledger",
+      "northstar/warehouse-api",
+      "northstar/manufacturing-execution"
+    ],
+    "required_tools": [
+      "admin_lookup",
+      "splunk_search",
+      "jira_search",
+      "github_recent_commits",
+      "reproduce_backend"
+    ],
+    "forbidden_tools": ["jira_create"]
+  },
+  "recorded_tools": [
+    {
+      "tool": "admin_lookup",
+      "arguments": {"account_id": "acct-aurora-07"},
+      "outcome": {
+        "status": "ok",
+        "data": {"warehouse": "WH-CLE", "work_order": "WO-4822", "lot": "LOT-77"}
+      }
+    },
+    {
+      "tool": "splunk_search",
+      "arguments": {"account_id": "acct-aurora-07"},
+      "outcome": {
+        "status": "ok",
+        "data": {
+          "search_id": "replace-with-splunk-search-id",
+          "events": [
+            {"event_id": "evt-77", "service": "inventory-ledger", "message": "duplicate reservation delivery"}
+          ]
+        }
+      }
+    },
+    {
+      "tool": "jira_search",
+      "arguments": {},
+      "outcome": {"status": "ok", "data": {"issues": ["INV-214"]}}
+    },
+    {
+      "tool": "github_recent_commits",
+      "arguments": {"repository": "northstar/inventory-ledger"},
+      "outcome": {"status": "ok", "data": {"commits": ["abc123"]}}
+    },
+    {
+      "tool": "reproduce_backend",
+      "arguments": {"repository": "northstar/inventory-ledger"},
+      "outcome": {"status": "ok", "data": {"reproduced": true}}
+    }
+  ]
+}

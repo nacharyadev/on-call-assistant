@@ -285,6 +285,8 @@ def evaluate(config: Config, harness: Path, tasks: list[dict[str, Any]],
                     "harness_dir": str(harness), "seed": seed_for(round_index, task["id"], trial_index),
                     "workspace": workspace,
                 }
+                if "recorded_tools" in task:
+                    runner_input["task"]["recorded_tools"] = task["recorded_tools"]
                 response = command_json(config.runner_command, runner_input, config.root, config.timeout_seconds)
                 if harness_digest(harness) != original_digest:
                     raise RuntimeError("runner modified the candidate harness during evaluation")

@@ -42,11 +42,50 @@ In a second terminal, change to the same repository root and submit a request. T
 
 The seven exact JSON bodies, covering all six capabilities plus browser UX reproduction, are in [service_requests.json](examples/supply_chain/service_requests.json). The [supply-chain guide](examples/supply_chain/README.md) includes a `curl` example and mock delay settings. Mock Codebot and Jira creation complete their simulated tool calls but do not change a repository or create a real ticket.
 
+To retain live flow evidence for later RRSI trials, set `capture_live_flows=True` in `src/on_call_assistant/common_config.py` and restart the service. `flow_capture_dir` in the same file controls the storage path. Each request produces a restricted JSON record with input, a versioned harness snapshot, classification, plan, tasks, tool observations, trace, answer, usage, and final status. Export completed flows as reviewable task drafts:
+
+```sh
+.venv/bin/python -m on_call_assistant.evaluation.captured_flows \
+  runs/flow-captures runs/rrsi-task-drafts.json
+```
+
+Add independent `expected_trajectory` labels, split the drafts into evolve and held-out suites, and point an RRSI config at those files and the matching harness. The trial runner replays captured tool observations without contacting live systems. See [the capture workflow](docs/evolution.md#capturing-live-flows-for-isolated-trials).
+
+For a new regression or previously untested path, copy the request and selected terminal or Splunk evidence into one case file and replay it immediately:
+
+```sh
+.venv/bin/on-call-trajectory replay-case \
+  examples/supply_chain/manual_live_case.json \
+  --harness examples/supply_chain/harness \
+  --report-json runs/manual-live-case.json \
+  --report-html runs/manual-live-case.html
+```
+
+The command reports which expected routing checks failed and writes a simple expected-versus-actual view. Once the case is useful, add it to the RRSI evolve suite; reserve separate cases for held-out evaluation.
+
 ### Evaluate and connect real systems
 
 Run `.venv/bin/python -m examples.supply_chain.run --live-model` to score the model's incident and release flows against recorded evidence. Run `.venv/bin/on-call-evolve examples/live.json` for the separate RRSI experiment loop; ordinary HTTP requests do not start RRSI. To connect team repositories and gateways, follow [agent setup](docs/agent.md) and the [production end-to-end guide](docs/production-e2e.md). See [validation](docs/validation.md) for the path to a real team benchmark.
 
 Open the [architecture view](architecture.html) for the module and workflow overview.
+
+### Bootstrap a harness from local repositories
+
+The repo-local `$oca-harness-bootstrap` skill can build a fresh harness or incrementally refresh an existing one from a workspace containing multiple checked-out repositories. Invoke it from an agent session in this repository:
+
+```text
+Use $oca-harness-bootstrap to create a fresh harness at ./team-harness
+from every Git repository under /path/to/team-workspace.
+```
+
+For a scoped refresh:
+
+```text
+Use $oca-harness-bootstrap to update the inventory domain in ./team-harness
+from the repositories under /path/to/team-workspace.
+```
+
+The skill records repository commits and scan deltas under the harness's ignored `.oca/` directory, updates source-grounded team, feature, vocabulary, context, and trajectory artifacts, and writes a versioned `discovery-report.json`. See the [bootstrap skill](.agents/skills/oca-harness-bootstrap/SKILL.md) for its evidence and incremental-update rules.
 
 ## Codebase
 

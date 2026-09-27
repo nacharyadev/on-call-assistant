@@ -17,7 +17,7 @@ OCA sends these calls through `HTTPTools`:
 
 The internal URLs are service base URLs; OCA appends `/execute` or `/tasks`. If `OCA_SERVICE_TOKEN` is set, OCA sends it as a bearer token to these gateways. GitHub uses its separate `GITHUB_TOKEN`. Gateways should return JSON with a stable shape that their team adapter understands; OCA wraps a successful `/execute` response as `{"status":"ok","data":<gateway JSON>}`. Unconfigured internal tools return `unavailable`; an unconfigured Codebot returns `stub`.
 
-`POST /requests` and `GET /requests/{id}` are protected by `OCA_API_TOKEN`. Requests and LangGraph checkpoints currently live in process memory. Use one service instance for this test; before multi-instance or restart-safe production use, add durable checkpointing and persistent request tracking.
+`POST /requests` and `GET /requests/{id}` are protected by `OCA_API_TOKEN`. Requests and LangGraph checkpoints currently live in process memory. Set `capture_live_flows=True` in `src/on_call_assistant/common_config.py` before startup to persist sanitized flow evidence for later isolated RRSI trials; this does not make the status endpoint restart-safe. Use one service instance for this test; before multi-instance or restart-safe production use, add durable checkpointing and persistent request tracking. See [capture and replay](evolution.md#capturing-live-flows-for-isolated-trials).
 
 ## 1. Build and review the team harness
 

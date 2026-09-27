@@ -29,6 +29,40 @@ Copy `.env.example` to `.env` if it is missing. `OCA_MODEL_PROVIDER` chooses Ant
 
 The command prints the run directory and the held-out before/after score. Inspect `summary.json`, `candidates.jsonl`, `trials.jsonl`, and the candidate harness under that run directory. Model usage is metered in `policy_tokens` for the agent trials; the demo does not include proposer and critic tokens in that metric. Since the live config invokes `../.venv/bin/python` from `examples/`, keep the virtual environment at the project root or update those command arrays.
 
+## Capturing live flows for isolated trials
+
+Set `capture_live_flows=True` in `src/on_call_assistant/common_config.py` and restart the service. `flow_capture_dir` in that file defaults to `runs/flow-captures` under the project root. This is opt-in. The service snapshots the harness once per SHA-256 version, writes a queued record before dispatch, and atomically replaces it with a completed or failed record when the graph finishes. Each JSON file contains the sanitized request, model name, harness snapshot reference, classification, plan, task list and dependencies, tool observations, trace (including parallel dispatch waves), final answer, token count, and timestamps. Capture files are mode `0600` in a `0700` directory. A failed initial write returns HTTP 503, so requests cannot silently proceed without the configured capture. A write failure after execution is logged by the service.
+
+```sh
+.venv/bin/python -m on_call_assistant.evaluation.captured_flows \
+  runs/flow-captures runs/rrsi-task-drafts.json
+```
+
+The exporter includes only completed, classified flows. Each draft has RRSI's `id`, `capability`, `input`, optional `domain`, and `recorded_tools`. It also retains the observed route and answer under `capture` for human review. **The observed route is not an expected route or a ground-truth outcome.** Review an incident or merged change independently, add `expected_trajectory` and any task-owned outcome fields, then split cases into separate evolve and held-out JSON arrays with disjoint IDs. Never derive labels by copying the captured answer. Set `baseline_harness` to the capture's `harness_snapshot` under the capture directory, and use `on_call_assistant.evaluation.live_runner` as the `runner_command`. The runner loads each candidate harness and replays a tool result only when its tool name and planned arguments match a captured call. Unmatched calls return `unavailable`; no live gateway is contacted. The RRSI core forwards `recorded_tools` to the runner but keeps verifier labels out of its input.
+
+Captured records can still contain customer identifiers and operational evidence. The sanitizer masks common credential fields, bearer values, and email addresses; it cannot guarantee removal of every sensitive value embedded in free text. Store captures and exported suites only in approved restricted storage, review them before sharing, and define retention and deletion in your environment. Do not commit these files. Recorded tool responses replay evidence and routing, but do not recreate Codebot patches or an application runtime; bug-fix and feature outcome verifiers still need isolated repositories and executable tests. The capture is durable evidence, but HTTP request tracking and LangGraph checkpoints remain in process memory; restarting the service still loses the status endpoint's history.
+
+### Manual regression loop
+
+Use this loop when a previously working request regresses or a new use case has never been evaluated:
+
+1. Copy the request and the relevant sanitized terminal or Splunk results into one JSON case.
+2. Add only the expected capability, domains, repositories, and tools needed to identify the correct paved path.
+3. Run `on-call-trajectory replay-case` locally and inspect its expected-versus-actual report.
+4. Keep useful failures in the RRSI evolve set and place distinct cases in the held-out set.
+
+```sh
+.venv/bin/on-call-trajectory replay-case \
+  examples/supply_chain/manual_live_case.json \
+  --harness examples/supply_chain/harness \
+  --report-json runs/manual-live-case.json \
+  --report-html runs/manual-live-case.html
+```
+
+Each `recorded_tools` entry has `tool`, `arguments`, and `outcome`. Arguments are a matching subset: `{"account_id":"acct-aurora-07"}` accepts any `splunk_search` call for that account, while an empty object accepts any call to that tool. Use exact repository arguments when repository selection is part of the behavior being tested. The example case is [manual_live_case.json](../examples/supply_chain/manual_live_case.json).
+
+Later, a warehouse job can produce the same task JSON from stored flow records and invoke the existing RRSI runner continuously. The manual and warehouse paths therefore use the same replay and verifier contracts.
+
 ## Architecture
 
 ```mermaid

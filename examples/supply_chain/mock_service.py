@@ -22,4 +22,4 @@ def create_mock_app():
     delay_scale = float(os.environ.get("OCA_MOCK_DELAY_SCALE", "1"))
     graph = create_graph(ROOT / "harness", tools=SimulatedTools(delay_scale=delay_scale),
                          allow_jira_create=True)
-    return create_app(graph=graph, api_token=token)
+    return create_app(ROOT / "harness", graph=graph, api_token=token)
