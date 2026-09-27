@@ -96,7 +96,7 @@ class FixtureModel:
                   "task": "Trace the dedupe key regression and propose a patch with an idempotency test"},
                  "depends_on": ["logs", "history", "commits", "repro"]},
             ]
-        return {"domain_ids": DOMAINS, "feature_names": [FEATURE], "tasks": tasks,
+        return {"domain_ids": DOMAINS, "feature_names": [FEATURE, "operator material issue workflow"], "tasks": tasks,
                 "rationale": "Follow the material-issue event across all three owning domains"}
 
     def _synthesize(self, payload: dict[str, Any]) -> dict[str, Any]:

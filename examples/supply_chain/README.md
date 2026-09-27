@@ -19,8 +19,13 @@ From the repository root:
 ```sh
 .venv/bin/python -m examples.supply_chain.run
 .venv/bin/python -m examples.supply_chain.run --case account-material-issue --json
+.venv/bin/python -m examples.supply_chain.run \
+  --report-json runs/supply-chain-trajectory.json \
+  --report-html runs/supply-chain-trajectory.html
 .venv/bin/python -m unittest discover -s tests
 ```
+
+Open `runs/supply-chain-trajectory.html` to compare each case's JSON expectation with the actual route, parallel worker waves, dependencies, checks, and task status. The companion JSON report stores the same compact route without raw account records or tool responses.
 
 The default run uses a deterministic fixture model and recorded tools. It exercises the actual LangGraph, parallel workers, task dependencies, checkpoints, context loading, and response path. It checks both the trajectory and an independent outcome verifier. The verifier checks the replayed stock values, duplicate event deliveries, MES response, source evidence, release path matches, and the reported Codebot stub. Tests also remove a log delivery or a changed file and confirm that the outcome check fails even when the trajectory still passes.
 
@@ -46,8 +51,8 @@ Model calls time out after 120 seconds by default; set `OCA_MODEL_TIMEOUT_SECOND
 
 | File | Purpose |
 | --- | --- |
-| `harness/team/team-artifact.json` | Three domains and five owning repositories |
-| `harness/feature-map.json` | Cross-repo features, path patterns, owners, consumers, tests |
+| `harness/team/team-artifact.json` | Three domains, twelve repositories, and domain vocabulary |
+| `harness/feature-map.json` | Cross-repo features, product journey, path patterns, owners, consumers, tests |
 | `harness/prds/`, `harness/decisions/` | Stock and work-order contracts plus the idempotency decision |
 | `recorded_tools.json` | Account, logs, Jira, commit, and release-diff responses |
 | `mini_services.py` | Executable faulty backend and reference replay |

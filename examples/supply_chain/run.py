@@ -9,6 +9,7 @@ from pathlib import Path
 from typing import Any
 
 from on_call_assistant.agent.graph import create_graph
+from on_call_assistant.evaluation.report import capture_actual, write_reports
 from on_call_assistant.evaluation.trajectory import evaluate_trajectory
 
 from .fixtures import FixtureModel, RecordedTools
@@ -27,7 +28,8 @@ def run_case(case: dict[str, Any], *, live_model: bool = False,
                          config={"configurable": {"thread_id": f"supply-chain-{case['id']}"}})
     trajectory = evaluate_trajectory(state, case["expected_trajectory"])
     outcome = verify_outcome(case, state, tools)
-    return {"id": case["id"], "passed": trajectory["reward"] == 1.0 and outcome["passed"],
+    return {"id": case["id"], "capability": state.get("capability"),
+            "passed": trajectory["reward"] == 1.0 and outcome["passed"],
             "trajectory": trajectory, "outcome": outcome,
             "answer": state.get("answer"), "tasks": state.get("tasks", []),
             "trace": state.get("trace", []), "policy_tokens": state.get("policy_tokens", 0)}
@@ -38,12 +40,16 @@ def main() -> None:
     parser.add_argument("--case", choices=["all", "account-material-issue", "release-material-issue"], default="all")
     parser.add_argument("--live-model", action="store_true", help="use the configured model with recorded tools")
     parser.add_argument("--json", action="store_true", help="print full machine-readable results")
+    parser.add_argument("--report-json", type=Path, help="save expected and actual routes as JSON")
+    parser.add_argument("--report-html", type=Path, help="save a visual expected/actual trajectory report")
     args = parser.parse_args()
     cases = json.loads((ROOT / "cases.json").read_text(encoding="utf-8"))
     results = []
+    selected_cases = []
     for case in cases:
         if args.case != "all" and case["id"] != args.case:
             continue
+        selected_cases.append(case)
         if args.live_model:
             print(f"Running {case['id']} with live model...", file=sys.stderr, flush=True)
         try:
@@ -53,6 +59,15 @@ def main() -> None:
         if args.live_model:
             print(f"Finished {case['id']}: {'PASS' if results[-1]['passed'] else 'FAIL'}",
                   file=sys.stderr, flush=True)
+    records = []
+    for case, result in zip(selected_cases, results):
+        verdict = result.get("trajectory", {"reward": 0.0, "failure_tags": ["execution_error"],
+                                            "error": result.get("error", "unknown error")})
+        records.append({"id": case["id"], "request": case["input"].get("text", ""),
+                        "expected_trajectory": case["expected_trajectory"],
+                        "actual": capture_actual(result) if "trajectory" in result else None,
+                        "verdict": verdict})
+    write_reports(records, json_path=args.report_json, html_path=args.report_html)
     if args.json:
         print(json.dumps(results, indent=2))
     else:

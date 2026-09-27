@@ -25,7 +25,7 @@ class SupplyChainExampleTests(unittest.TestCase):
                              if item["name"] == "operator material issue workflow")
         self.assertEqual({catalog[component["repository"]]["kind"]
                           for component in operator_flow["components"]}, {"frontend", "backend"})
-        self.assertEqual(len(operator_flow["components"]), 5)
+        self.assertEqual(len(operator_flow["components"]), 6)
 
     def test_release_impact_requires_tentative_language(self):
         self.assertTrue(_states_tentative_impact("This is a plausible risk, not a confirmed regression."))

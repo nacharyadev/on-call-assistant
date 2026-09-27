@@ -103,10 +103,12 @@ Run the suite with a configured model and mocked tools:
 
 ```sh
 .venv/bin/on-call-trajectory run-suite examples/trajectory_cases.json \
-  --harness examples/demo_harness
+  --harness examples/demo_harness \
+  --report-json runs/trajectory-report.json \
+  --report-html runs/trajectory-report.html
 ```
 
-The command exits nonzero if a case misses an expected path. The tools return dry-run results, so this measures routing decisions rather than code correctness or real integrations. For RRSI, add `expected_trajectory` to each task's hidden verifier fields and set `verifier_command` to `["python3", "-m", "on_call_assistant.evaluation.cli", "verify-rrsi"]`. The bridge returns the trace, task list, selected plan, capability, answer, and policy token count. Keep this trajectory score alongside task-owned correctness tests: taking the intended route is necessary but does not establish that a patch, review, or diagnosis is correct.
+The command exits nonzero if a case misses an expected path. `expected_trajectory` is stored in the cases JSON. During each run the graph produces the actual routing, task list, and dispatch trace. The optional JSON report saves both sides and the verdict; the self-contained HTML report shows them side by side, with mismatches, worker waves, dependencies, and task status. Open `runs/trajectory-report.html` in a browser. The report records the route and answer summary, without raw worker responses or logs. The tools return dry-run results, so this measures routing decisions rather than code correctness or real integrations. For RRSI, add `expected_trajectory` to each task's hidden verifier fields and set `verifier_command` to `["python3", "-m", "on_call_assistant.evaluation.cli", "verify-rrsi"]`. The bridge returns the trace, task list, selected plan, capability, answer, and policy token count. Keep this trajectory score alongside task-owned correctness tests: taking the intended route is necessary but does not establish that a patch, review, or diagnosis is correct.
 
 The current in-memory checkpointer and gateway contracts are a first deployment boundary. Before handling live customer data, configure team-specific artifact exports, authenticated gateways, isolated reproduction environments, and a durable checkpointer if requests must survive service restarts.
 

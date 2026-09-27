@@ -9,6 +9,7 @@ from pathlib import Path
 
 from ..agent.graph import create_graph
 from .dry_run import DryRunTools
+from .report import capture_actual, write_reports
 from .trajectory import evaluate_trajectory
 
 
@@ -19,6 +20,8 @@ def main() -> None:
     suite = subparsers.add_parser("run-suite", help="run pathway cases with mocked tools")
     suite.add_argument("cases", type=Path)
     suite.add_argument("--harness", type=Path, required=True)
+    suite.add_argument("--report-json", type=Path, help="save expectations, verdicts, and actual routes as JSON")
+    suite.add_argument("--report-html", type=Path, help="save a self-contained expected/actual visual report")
     args = parser.parse_args()
     if args.mode == "verify-rrsi":
         payload = json.load(sys.stdin)
@@ -32,15 +35,22 @@ def main() -> None:
     cases = json.loads(args.cases.read_text(encoding="utf-8"))
     graph = create_graph(args.harness, tools=DryRunTools(), allow_jira_create=True)
     verdicts = []
+    records = []
     for case in cases:
+        actual = None
         try:
             state = graph.invoke({"request": case["input"]},
                                  config={"configurable": {"thread_id": f"trajectory-{case['id']}"}})
             verdict = evaluate_trajectory(state, case["expected_trajectory"])
+            actual = capture_actual(state)
         except Exception as exc:
             verdict = {"reward": 0.0, "check_fraction": 0.0,
                        "failure_tags": ["execution_error"], "error": str(exc)[:500]}
         verdicts.append({"id": case["id"], **verdict})
+        records.append({"id": case["id"], "request": case["input"].get("text", ""),
+                        "expected_trajectory": case["expected_trajectory"],
+                        "actual": actual, "verdict": verdict})
+    write_reports(records, json_path=args.report_json, html_path=args.report_html)
     print(json.dumps(verdicts, indent=2))
     if any(item["failure_tags"] for item in verdicts):
         raise SystemExit(1)

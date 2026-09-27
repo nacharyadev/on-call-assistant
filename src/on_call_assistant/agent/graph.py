@@ -91,7 +91,7 @@ def create_graph(
                 if attempt == 2:
                     raise ValueError(f"planner failed validation after 3 attempts: {exc}") from exc
                 payload = {**payload, "previous_plan": result, "validation_error": str(exc),
-                           "repair_instruction": "Return a complete corrected plan using only the exact allowed tool names and argument keys in the system instructions."}
+                           "repair_instruction": "Return a complete corrected plan and fix the specific validation error. Every github_recent_commits, github_pr_files, github_compare, codebot, reproduce_backend, and reproduce_browser task needs an explicit arguments.repository chosen from the selected domains or features. Add the repo's owning domain or feature when needed. Remove admin_lookup and splunk_search if the request has no account_id. Keep only allowed tool names and argument keys."}
         return {"plan": plan, "tasks": plan["tasks"], "policy_tokens": tokens_used,
                 "trace": [{"node": "planner", "task_count": len(plan["tasks"]),
                            "repositories": plan["repositories"], "attempts": attempt + 1}]}
@@ -187,6 +187,13 @@ def create_graph(
         for attempt in range(3):
             result, tokens = model.complete_json(prompt("response"), payload)
             tokens_used += tokens
+            if state["capability"] == "release_impact" and isinstance(result, dict):
+                candidates = payload["impact_candidates"]
+                for field, candidate_field in (("affected_features", "feature"), ("owners", "owners"),
+                                               ("consumers", "consumers"), ("tests", "tests")):
+                    result[field] = sorted({value for item in candidates
+                                            for value in (item[candidate_field] if isinstance(item[candidate_field], list)
+                                                          else [item[candidate_field]]) if isinstance(value, str)})
             try:
                 result = validate_response(result, state["tasks"], state["capability"])
                 break
@@ -194,7 +201,8 @@ def create_graph(
                 if attempt == 2:
                     raise ValueError(f"response failed validation after 3 attempts: {exc}") from exc
                 payload = {**payload, "previous_response": result, "validation_error": str(exc),
-                           "repair_instruction": "Return only the requested answer fields, citing actual task IDs. Do not echo tasks or results."}
+                           "allowed_task_ids": [task["id"] for task in state["tasks"]],
+                           "repair_instruction": "Return only the requested answer fields and fix the specific validation error. Every evidence.task_id and findings[].evidence_tasks entry must be an allowed task ID. For release impact, the summary must explicitly call the impact candidate, potential, plausible, or unverified. Do not echo tasks or results."}
         result["task_status"] = {task["id"]: task["status"] for task in state["tasks"]}
         result["incomplete_tasks"] = [
             {"id": task["id"], "tool": task["tool"], "status": task["status"]}
