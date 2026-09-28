@@ -7,6 +7,10 @@ description: Create or update OCA trajectory cases that verify capability routin
 
 Create or update a JSON array of cases, commonly `trajectory_cases.json`. Read the team artifact and feature map first, then use `examples/trajectory_cases.json` for the current case format and `docs/agent.md` for evaluator behavior.
 
+## Examples to follow
+
+Read the maintained [supply-chain cases](../../../examples/supply_chain/cases.json) for account-scoped incident analysis and cross-repository release impact. They demonstrate focused repositories, parallel evidence waves, task dependencies, forbidden tools, and separate outcome expectations. Use [the generic capability suite](../../../examples/trajectory_cases.json) when coverage across all six capabilities matters.
+
 ## Build independent expected paths
 
 - Give each case a stable unique `id`, a realistic public request in `input.text`, and `expected_trajectory` grounded in the team's intended operating procedure.

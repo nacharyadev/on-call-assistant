@@ -7,6 +7,10 @@ description: Build or refine OCA's domain vocabulary so customer language, opera
 
 Add entries to the root `vocabulary` array in `team/team-artifact.json`. Read the domain definitions, feature map, source docs, and relevant code before assigning meanings. The planner receives this vocabulary; selected entries and their `source_paths` are also passed to Codebot and reproduction workers as context.
 
+## Example to follow
+
+Read the `vocabulary` array in the maintained [supply-chain team artifact](../../../examples/supply_chain/harness/team/team-artifact.json). It demonstrates canonical business terms, customer and team aliases, deliberately distinct identifiers, repository and feature scopes, real code symbols, and source documents. Preserve that separation of meaning; do not copy its domain terminology into another team.
+
 ## Capture ubiquitous language
 
 - Choose one canonical business term for each concept and explain it in one concise `definition`. Add customer-facing names, acronyms, legacy labels, and team slang in `aliases`.

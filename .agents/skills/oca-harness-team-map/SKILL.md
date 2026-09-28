@@ -7,6 +7,10 @@ description: Prepare or update an OCA team artifact that maps domains to fronten
 
 Create or update `team/team-artifact.json` in the team's harness. Use `examples/supply_chain/harness/team/team-artifact.json` for a populated multi-repository example and `examples/agent_harness/team/team-artifact.json` for the empty template.
 
+## Example to follow
+
+Read the maintained [supply-chain team artifact](../../../examples/supply_chain/harness/team/team-artifact.json) before creating a multi-repository map. It demonstrates three collaborating domains, multiple frontend and backend repositories per domain, repository responsibilities, routing signals, dependencies, entrypoints, verification targets, reproduction profiles, owners, documents, and scoped vocabulary. Copy its structure, not its Northstar names or facts.
+
 ## Gather and model
 
 - Derive domain boundaries, repo names, ownership, dependencies, and operational tools from user-provided artifacts or verified repository metadata. Ask about important missing facts; do not invent repo names, owners, runtime relationships, or production tool behavior.

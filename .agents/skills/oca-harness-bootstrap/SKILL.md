@@ -30,6 +30,8 @@ python3 .agents/skills/oca-harness-bootstrap/scripts/inventory_workspace.py \
 
 Use repeated `--repo` arguments instead of `--workspace` when the repositories do not share a parent. Omit `--domain` to process all domains. The helper writes its report under `<harness>/.oca/`; do not copy that directory into model context or version control. It does not advance the successful-scan baseline yet.
 
+Read [the worked bootstrap and incremental-refresh example](references/end-to-end-example.md) before the first run. It shows how repository evidence becomes harness changes, how provisional gaps are reported, and when the commit baseline advances.
+
 ## Build or refresh
 
 For a fresh harness, create the standard harness directories and start from the empty structures described by the sibling OCA skills. For an update, read the entire existing team artifact and feature map before applying scoped changes. Preserve stable IDs, human-authored decisions, and mappings whose sources have not changed.

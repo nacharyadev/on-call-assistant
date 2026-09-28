@@ -7,6 +7,10 @@ description: Build or refine OCA's feature map across repositories, components, 
 
 Create or update `feature-map.json` at the harness root. Read `team/team-artifact.json` first so every feature references known domain and repo IDs. Use `examples/supply_chain/harness/feature-map.json` as the multi-repo example and `examples/agent_harness/feature-map.json` as the empty template.
 
+## Examples to follow
+
+Read the maintained [supply-chain feature map](../../../examples/supply_chain/harness/feature-map.json) for cross-domain components, product journeys, frontend routes, backend APIs, events, owners, consumers, and regression tests. When the feature map also needs navigable URL templates and screenshot provenance, read [the URL and snapshot example](references/url-snapshot-example.md). Copy the relationships and level of evidence, not the example product names.
+
 ## Map features to implementation surfaces
 
 - Use one feature entry for a capability or customer-visible flow that can span multiple domains and repos. Avoid one entry per repository when those repos jointly implement one behavior.

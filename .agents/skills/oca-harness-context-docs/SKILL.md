@@ -7,6 +7,10 @@ description: Prepare concise, source-grounded PRDs, architecture decisions, runb
 
 Create or update documents under the harness root, usually `prds/`, `decisions/`, or `runbooks/`. Link each document from the relevant domain's `prd_paths` or `decision_paths`, or from a feature's `ground_truth` in the harness map.
 
+## Examples to follow
+
+Read [the worked PRD, ADR, and reproduction runbook](references/good-examples.md) before creating new context documents. The examples show the desired balance: enough observable behavior and verification detail for planning, without copying implementation inventories or unverified incident hypotheses into durable context.
+
 ## Write usable context
 
 - Base statements on the source material the user provides, repository behavior, approved system docs, or verified engineering decisions. Mark unresolved questions as open; do not turn a suggestion or incident hypothesis into an approved contract.
